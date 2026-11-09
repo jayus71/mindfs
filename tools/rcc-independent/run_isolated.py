@@ -58,8 +58,10 @@ record['status']='passed' if result.returncode==0 else 'failed'
 if a.action not in ('terminate','cancel-resume') and not record['prompt_observed']:record['status']='failed'
 if a.action=='basic' and not record['second_prompt_observed']:record['status']='failed'
 if a.action=='resume' and not record['previous_remote_history_observed']:record['status']='failed'
-if a.action=='cancel-resume':record['resumed_prompt_observed']='MINDFS_RCC_CANCEL_RESUMED' in text
-if a.action=='question' and not(record['answer_observed'] and record['node_created']):record['status']='failed'
+if a.action=='cancel-resume':
+    record['resumed_prompt_observed']='MINDFS_RCC_CANCEL_RESUMED' in text
+    if not record['resumed_prompt_observed']:record['status']='failed'
+if a.action=='question' and not(record['answer_observed'] and record['node_created'] and record['bash_observed']):record['status']='failed'
 (a.state/('mindfs-'+a.action+'-result.json')).write_text(json.dumps(record,indent=2)+'\n')
 print(json.dumps(record,indent=2))
 sys.exit(0 if record['status']=='passed' else 1)
