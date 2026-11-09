@@ -44,7 +44,7 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 		if !errors.As(openErr, &exited) || exited.ExitCode() == 0 {
 			t.Fatalf("actual RCC invalid flag lost exit status: %v", openErr)
 		}
-		if !strings.Contains(openErr.Error(), "independent-invalid-rcc-option") {
+		if !strings.Contains(openErr.Error(), "客户端参数无效") {
 			t.Fatalf("actual RCC stderr diagnostic missing: %v", openErr)
 		}
 		t.Logf("actual RCC invalid-option exit preserved: %d", exited.ExitCode())

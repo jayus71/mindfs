@@ -20,7 +20,7 @@ if a.action=='setup':
 assert a.test_binary
 steps=[]
 if a.action in ('question','cancel-resume'):
-    steps=[{'name':'Write','input':{'file_path':str(f.project/'permission-created.txt'),'content':'MINDFS_RCC_NODE_WRITE\n'}}, {'name':'AskUserQuestion','input':{'questions':[{'question':'Pick a color?','header':'Color','options':[{'label':'Blue','description':'Blue option'},{'label':'Red','description':'Red option'}],'multiSelect':False}]}}]
+    steps=[{'name':'Write','input':{'file_path':str(f.project/'permission-created.txt'),'content':'MINDFS_RCC_NODE_WRITE\n'}}, {'name':'Read','input':{'file_path':str(f.project/'permission-created.txt')}}, {'name':'Bash','input':{'command':'cat permission-created.txt; printf MINDFS_RCC_NODE_BASH'}}, {'name':'AskUserQuestion','input':{'questions':[{'question':'Pick a color?','header':'Color','options':[{'label':'Blue','description':'Blue option'},{'label':'Red','description':'Red option'}],'multiSelect':False}]}}]
 f.mock(empty=True)
 f.remote('runtime',['python3','-c','import pathlib,sys;p=pathlib.Path("/opt/rcc87s3/mock-steps.json");p.write_text(sys.stdin.read());p.chmod(0o444)'],json.dumps(steps))
 # Restart the mock so it loads this scenario's controlled sequence.
@@ -39,6 +39,7 @@ if a.action=='basic':record['second_prompt_observed']='MINDFS_RCC_BASIC_SECOND' 
 if a.action=='resume':record['previous_remote_history_observed']='MINDFS_RCC_basic_FIRST' in text and 'MINDFS_RCC_BASIC_SECOND' in text
 if a.action=='question':
     record['answer_observed']='Blue' in text
+    record['bash_observed']='MINDFS_RCC_NODE_BASH' in text
     record['node_created']=f.remote('node',['cat',str(f.project/'permission-created.txt')],check=False).stdout=='MINDFS_RCC_NODE_WRITE\n'
     record['host_created']=(f.project/'permission-created.txt').exists()
     assert not record['host_created']
