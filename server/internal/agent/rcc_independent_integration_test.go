@@ -60,10 +60,59 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 		}
 		in.AgentSessionID = strings.TrimSpace(string(b))
 	}
+	listArgs := []string{"list", "--profile", filepath.Join(root, "client-profile.json"), "--client-state", filepath.Join(root, "client-alice")}
+	knownBefore := map[string]bool{}
+	for _, row := range independentRCCList(t, ctx, binary, listArgs, project) {
+		knownBefore[row.ID] = true
+	}
+	ownedIDs := map[string]bool{}
+	captureNew := func() {
+		for _, row := range independentRCCList(t, ctx, binary, listArgs, project) {
+			if !knownBefore[row.ID] && row.Node == "node-alice" {
+				ownedIDs[row.ID] = true
+				t.Logf("owned RCC native session=%s project=%s node=%s", row.ID, row.Project, row.Node)
+			}
+		}
+		if len(ownedIDs) == 0 {
+			t.Fatal("no new RCC native session owned by this case")
+		}
+	}
+	awaitStopped := func() {
+		deadline := time.Now().Add(20 * time.Second)
+		start := time.Now()
+		for {
+			found := map[string]bool{}
+			states := map[string]string{}
+			complete := true
+			for _, row := range independentRCCList(t, ctx, binary, listArgs, project) {
+				if ownedIDs[row.ID] {
+					found[row.ID] = true
+					states[row.ID] = row.State + "/" + row.Remote
+					if row.State != "stopped" || row.Remote != "stopped" {
+						complete = false
+					}
+				}
+			}
+			for id := range ownedIDs {
+				if !found[id] {
+					complete = false
+				}
+			}
+			if complete {
+				t.Logf("confirmed owned native sessions stopped elapsed=%s states=%v", time.Since(start), states)
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("owned RCC session stop was not confirmed within 20s: %v", states)
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
+	}
 	sess, err := pool.GetOrCreate(ctx, in)
 	if err != nil {
 		t.Fatalf("actual RCC initialize/control handshake: %v", err)
 	}
+	captureNew()
 	var mu sync.Mutex
 	chunks, questions := 0, 0
 	var allowAnswer atomic.Bool
@@ -108,12 +157,14 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 		if err = <-done; !errors.Is(err, context.Canceled) {
 			t.Fatalf("turn cancellation: %v", err)
 		}
+		awaitStopped()
 		allowAnswer.Store(true)
 		in.AgentSessionID = id
 		next, e := pool.GetOrCreate(ctx, in)
 		if e != nil {
 			t.Fatalf("reopen cancelled session: %v", e)
 		}
+		captureNew()
 		next.OnUpdate(func(e agenttypes.Event) {
 			if call, ok := e.Data.(agenttypes.ToolCall); ok && call.Kind == agenttypes.ToolKindAskUser && call.Meta["toolUseId"] == call.CallID && e.Type == agenttypes.EventTypeToolCall {
 				go next.AnswerQuestion(ctx, agenttypes.AskUserAnswer{ToolUseID: call.CallID, Answers: map[string]string{"Pick a color?": "Blue"}})
@@ -180,25 +231,22 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 	if time.Since(start) > 20*time.Second {
 		t.Fatal("session close exceeded 20 seconds")
 	}
-	// An RCC session is a separate identity from the official conversation ID.
-	// Verify its lifecycle through RCC's authenticated list operation.
-	args := []string{"list", "--profile", filepath.Join(root, "client-profile.json"), "--client-state", filepath.Join(root, "client-alice")}
+	awaitStopped()
+}
+
+type independentRCCSession struct{ ID, Project, Node, State, Remote string }
+
+func independentRCCList(t *testing.T, ctx context.Context, binary string, args []string, project string) []independentRCCSession {
+	t.Helper()
 	cmd := exec.CommandContext(ctx, binary, args...)
 	cmd.Dir = project
 	out, err := cmd.Output()
 	if err != nil {
 		t.Fatalf("RCC list: %v", err)
 	}
-	var listed struct{ Sessions []struct{ State string } }
+	var listed struct{ Sessions []independentRCCSession }
 	if err = json.Unmarshal(out, &listed); err != nil {
 		t.Fatalf("RCC list JSON: %v", err)
 	}
-	if len(listed.Sessions) == 0 {
-		t.Fatal("RCC list missing remote session evidence")
-	}
-	for _, item := range listed.Sessions {
-		if item.State != "stopped" {
-			t.Fatalf("remote RCC session state=%q, want stopped", item.State)
-		}
-	}
+	return listed.Sessions
 }
