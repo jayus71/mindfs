@@ -4,9 +4,9 @@ MindFS 的 RCC 接入已通过真实链路的双轮对话、节点文件读写�
 
 ## 固定版本与隔离范围
 
-开发固定 SHA 为 `c0c78168577d1649b3d78143c9af4f096925f1b5`；正式独测工作区为 `/media/main/hongbo/mindfs-rcc-independent-20261109`，分支为 `test/rcc-agent-independent-20261109`。双轮、恢复、工具与 context 取消的测试基线为 clean `81acced715c8637dc52e69409dc6b95fc2f0ba81`；增加 UI 取消 API 场景后使用 clean `004871d3ef6d06acec7368bce599e819ed84eac1`。这两次基线的产品代码均逐字节来自同一开发 SHA。
+开发固定 SHA 为 `c0c78168577d1649b3d78143c9af4f096925f1b5`；正式独测工作区为 `/media/main/hongbo/mindfs-rcc-independent-20261109`，分支为 `test/rcc-agent-independent-20261109`。验收合入后已清理该工作区，分支与证据保留。双轮、恢复、工具与 context 取消的测试基线为 clean `81acced715c8637dc52e69409dc6b95fc2f0ba81`；增加 UI 取消 API 场景后使用 clean `004871d3ef6d06acec7368bce599e819ed84eac1`。这两次基线的产品代码均逐字节来自同一开发 SHA。
 
-RCC 源码从固定 `56de616a3db3b960e4b0f28d62919942ad1f5b26` 建立独立 detached worktree `/tmp/mindfs-rcc-independent-20261109/rcc-source`，由 Go 1.25.8 以 `go build -mod=vendor -buildvcs=false` 分别构建三组件。正式用例的主机客户端与两 VM 均使用这组固定来源构建；初期从活动主目录构建的二进制不计入最终结果。
+RCC 源码从固定 `56de616a3db3b960e4b0f28d62919942ad1f5b26` 建立独立 detached worktree `/tmp/mindfs-rcc-independent-20261109/rcc-source`，由 Go 1.25.8 以 `go build -mod=vendor -buildvcs=false` 分别构建三组件。该源码工作区已在验收后清理，固定提交与构建产物保留。正式用例的主机客户端与两 VM 均使用这组固定来源构建；初期从活动主目录构建的二进制不计入最终结果。
 
 | 组件 | 最终 SHA-256 |
 | --- | --- |
