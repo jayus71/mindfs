@@ -1,0 +1,120 @@
+{
+  "name": "mindfs-independent-zacfj2",
+  "port": 59015,
+  "image": "mindfs-independent-zacfj2:test",
+  "state": "/tmp/mindfs-container-independent-ZACFJ2",
+  "source_sha": "bae3d41eb9b398b4227effa971fb0ecf005cc913",
+  "checks": [
+    {
+      "name": "one-time allowlist import, permissions and immutable fake sources",
+      "passed": true,
+      "files": [
+        ".codex/auth.json",
+        ".codex/config.toml",
+        ".config/mindfs/api-providers.json",
+        ".config/mindfs/preferences.json"
+      ],
+      "repeat_exit": 1,
+      "source_sha256": {
+        ".codex/auth.json": {
+          "sha256": "e5fb501cb113267f532e233b663b8302ae7c08d5503d009e4cdf0ad180b39271",
+          "mode": 420
+        },
+        ".codex/config.toml": {
+          "sha256": "3de696b21b302f27d128be2dcf5e2abcfbba52264c04fdbe5b98d07176fbea4a",
+          "mode": 420
+        },
+        ".config/mindfs/credentials.json": {
+          "sha256": "f7343a173bac83adbf10e22e7df75a13b83cdcba472da607f0f31351d4458d67",
+          "mode": 420
+        },
+        ".config/mindfs/preferences.json": {
+          "sha256": "d8fda3c2aab8ed71702deab8fbc13bbf84475bcbfc49f3c24554c2aea32b67d5",
+          "mode": 420
+        },
+        ".config/mindfs/registry.json": {
+          "sha256": "f7343a173bac83adbf10e22e7df75a13b83cdcba472da607f0f31351d4458d67",
+          "mode": 420
+        },
+        ".config/mindfs/local-cli-tokens.json": {
+          "sha256": "f7343a173bac83adbf10e22e7df75a13b83cdcba472da607f0f31351d4458d67",
+          "mode": 420
+        },
+        ".config/mindfs/api-providers.json": {
+          "sha256": "743e18b80658f43b1118ff8bda82438770e62789b59e44834812809b109e435d",
+          "mode": 420
+        },
+        ".codex/sessions/history-do-not-copy.txt": {
+          "sha256": "22b1aa3c3aae3d165129a9118bd5b9e14f5423a8d870d48a18f765c42af4ed85",
+          "mode": 420
+        }
+      }
+    },
+    {
+      "name": "real Codex app-server initializes offline with an empty private HOME",
+      "passed": true,
+      "initialize_response": {
+        "id": 1,
+        "result": {
+          "userAgent": "mindfs-independent/0.162.1 (Ubuntu 24.4.0; x86_64) unknown (mindfs-independent; 1.0.0)",
+          "codexHome": "/home/mindfs/.codex",
+          "platformFamily": "unix",
+          "platformOs": "linux"
+        }
+      },
+      "network_mode": "none"
+    },
+    {
+      "name": "browser renders container web app",
+      "passed": true,
+      "title": "MindFS RCC Container",
+      "text_excerpt": "Files\ngit\nWorktrees\nRelated files\nproject\n--\nTop up\nBack to node page\nInstall app\nInstall from the address bar icon or browser menu\nproject\nAll\nbugfix\n优化改进\n新功能\nPending\n0\nNo tasks\nIn progress\n0\nNo tasks\nDone\n0\nNo tasks\nNothing here. If this project already has sessions, use the import button above. I",
+      "page_errors": []
+    },
+    {
+      "name": "delivered image and Compose start, original commands and web assets",
+      "passed": true,
+      "container": "b5bdab41f04bc57204a7be4441f0eb093a5af4b368f2afbd6454bab3fcc4f276",
+      "image_id": "sha256:0599ebd803ad488ecf7faf5c9823cf800ce277175a4dff2da216bda1bccd7274",
+      "uid": "mindfs",
+      "rcc_mount": {
+        "Type": "bind",
+        "Source": "/media/main/hongbo/.local/lib/rcc/interactive-2cf97f2e87a0",
+        "Destination": "/opt/rcc",
+        "Mode": "",
+        "RW": false,
+        "Propagation": "rprivate"
+      },
+      "web_script": "./assets/index-Bj6bCmzI.js",
+      "codex_version": "codex-cli 0.162.1"
+    },
+    {
+      "name": "actual MindFS Codex SDK starts fake app-server and completes two turns",
+      "passed": true,
+      "session": "1794235380-d71678c3f73c",
+      "app_server_starts": 1
+    },
+    {
+      "name": "real read-only RCC release loads, explicit node option and MindFS SDK diagnostic path",
+      "passed": true,
+      "rcc_sha256": "e4e883f51825f0c8c91c78b7b5bb97f160ac725e26243de563b8ca2701c4b4d1",
+      "connection": "not requested; no container-node registration or external model session"
+    },
+    {
+      "name": "provider changes, copied config and session DB persist across restart; source and host metadata unchanged",
+      "passed": true,
+      "source_unchanged": true,
+      "public_metadata_sha256": "279ecfa0eff29caf49193c2c5b541911ad963e581634988b1a65d8b812dd9487"
+    },
+    {
+      "name": "new container retains the private volume state",
+      "passed": true,
+      "old_container": "b5bdab41f04bc57204a7be4441f0eb093a5af4b368f2afbd6454bab3fcc4f276",
+      "new_container": "6b2fa2176a4c420df315c522ed44ce0cac2a8b80fc07d0d18f096cd376977035"
+    }
+  ],
+  "reused_image_id": "sha256:0599ebd803ad488ecf7faf5c9823cf800ce277175a4dff2da216bda1bccd7274",
+  "passed": true,
+  "remaining_owned_containers": [],
+  "remaining_owned_networks": []
+}
