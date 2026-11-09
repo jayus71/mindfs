@@ -2,7 +2,7 @@
 """Independent container smoke probe; all host paths and Docker objects are owned by this run."""
 import argparse,hashlib,json,os,pathlib,re,selectors,shutil,socket,subprocess,tempfile,time,urllib.error,urllib.request
 from ws_fixture import WebSocket
-argp=argparse.ArgumentParser();argp.add_argument('--repo',required=True);argp.add_argument('--state',required=True);argp.add_argument('--rcc-release',required=True);argp.add_argument('--reuse-image',help='immutable sha256 image ID to reuse instead of rebuilding');argp.add_argument('--playwright-module');argp.add_argument('--go',default='go');a=argp.parse_args()
+argp=argparse.ArgumentParser();argp.add_argument('--repo',required=True);argp.add_argument('--state',required=True);argp.add_argument('--rcc-release',required=True);argp.add_argument('--reuse-image',help='immutable sha256 image ID to reuse instead of rebuilding');argp.add_argument('--playwright-module');argp.add_argument('--go',default='go');argp.add_argument('--chromium-executable');a=argp.parse_args()
 repo=pathlib.Path(a.repo).resolve();base=pathlib.Path(a.state).resolve();assert str(base).startswith('/tmp/mindfs-container-independent-')
 source=base/'source-home';private=base/'private-home'
 if not source.exists():
@@ -128,7 +128,7 @@ try:
  html=api('/')[2];assert '<html' in html and re.search(r'<script[^>]+src=',html),html[:600]
  script=re.search(r'<script[^>]+src="([^"]+)"',html).group(1);status,_,js=api('/'+script.removeprefix('./').lstrip('/'));assert status==200 and len(js)>10000
  if a.playwright_module:
-  browser=run(['node',str(pathlib.Path(__file__).with_name('browser_check.mjs')),a.playwright_module,f'http://127.0.0.1:{port}',str(evidence/'web.png')]);record('browser renders container web app',**json.loads(browser.stdout))
+  browser=run(['node',str(pathlib.Path(__file__).with_name('browser_check.mjs')),a.playwright_module,f'http://127.0.0.1:{port}',str(evidence/'web.png'),a.chromium_executable or '']);record('browser renders container web app',**json.loads(browser.stdout))
  record('delivered image and Compose start, original commands and web assets',container=cid,image_id=inspect['Image'],uid=inspect['Config']['User'],rcc_mount=next(m for m in mounts if m['Destination']=='/opt/rcc'),web_script=script,codex_version=codex_version)
  # The host's existing project metadata is masked by a private data volume.
  assert dex('test','!','-e',str(project/'.mindfs/public-sentinel')).returncode==0

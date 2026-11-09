@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url';
-const [modulePath, url, screenshot] = process.argv.slice(2);
+const [modulePath, url, screenshot, executablePath] = process.argv.slice(2);
 const { chromium } = await import(pathToFileURL(modulePath + '/index.mjs'));
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(executablePath ? {executablePath} : {}) });
 try {
   const context = await browser.newContext();
   const page = await context.newPage();
