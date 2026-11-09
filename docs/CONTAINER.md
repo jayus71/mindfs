@@ -37,6 +37,8 @@ python3 deploy/container/import-settings.py \
 
 启动前检查私有副本的主机相关设置：Codex 的绝对路径、MCP 命令及依赖、agent 环境变量，以及 provider URL。容器中的 `127.0.0.1` 指向容器自身；需要的工具和网络入口应在容器中可用。后续在网页中管理、切换 provider 时，修改的是这个私有副本。源配置没有持续挂载，重复运行导入脚本会拒绝覆盖已有数据。
 
+导入的 Codex env 在启动时叠加到容器的运行环境。HOME、CODEX_HOME、PATH 和两个 XDG 目录使用容器值，避免宿主路径覆盖私有目录。入口脚本在私有 HOME 中生成权限 0600 的额外 agent 配置，原导入文件保持原样。这是每次启动生成的 env 快照；后续修改 Codex agent env 后，重启容器生效。Codex API provider 切换仍直接写入私有 `config.toml`，按原有行为生效。空 env 沿用 SDK 默认继承行为。此步骤在容器内执行，主机导入脚本不会读取整套主机环境变量。
+
 ```bash
 bash deploy/container/compose.sh build
 bash deploy/container/compose.sh up -d --no-build
@@ -91,6 +93,9 @@ python3 deploy/container/smoke-container.py --image mindfs-rcc:local
 # 可选：额外验证真实私有发行的只读挂载、--help 与外部节点参数生成。
 python3 deploy/container/smoke-container.py --image mindfs-rcc:local \
   --rcc-release-dir /absolute/private/rcc-release
+# 导入非空 env 后，运行真实 MindFS SDK→假 app-server 双轮及重启续接。
+python3 deploy/container/smoke-agent-env.py --image mindfs-rcc:local \
+  --go /absolute/path/to/go
 ```
 
 烟测默认占用独立回环端口 17332，可用 `--port` 替换。镜像须按当前用户 UID/GID 预先构建。此烟测覆盖安装、配置隔离和服务运行，不创建 RCC 登录或外部节点会话。
