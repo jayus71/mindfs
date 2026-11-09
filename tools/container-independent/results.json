@@ -1,9 +1,10 @@
 {
-  "name": "mindfs-independent-zacfj2",
-  "port": 59015,
-  "image": "mindfs-independent-zacfj2:test",
-  "state": "/tmp/mindfs-container-independent-ZACFJ2",
-  "source_sha": "bae3d41eb9b398b4227effa971fb0ecf005cc913",
+  "name": "mindfs-independent-onycuv",
+  "port": 54231,
+  "image": "mindfs-independent-onycuv:test",
+  "state": "/tmp/mindfs-container-independent-oNYcUv",
+  "source_sha": "2b5fae7f11aa8ee5ce608c4d441b2a473d6eb720",
+  "with_agent_env": true,
   "checks": [
     {
       "name": "one-time allowlist import, permissions and immutable fake sources",
@@ -11,6 +12,7 @@
       "files": [
         ".codex/auth.json",
         ".codex/config.toml",
+        ".config/mindfs/agents.json",
         ".config/mindfs/api-providers.json",
         ".config/mindfs/preferences.json"
       ],
@@ -26,6 +28,10 @@
         },
         ".config/mindfs/credentials.json": {
           "sha256": "f7343a173bac83adbf10e22e7df75a13b83cdcba472da607f0f31351d4458d67",
+          "mode": 420
+        },
+        ".config/mindfs/agents.json": {
+          "sha256": "69cee7f4d1b269eac4eeea831dd3c9411899e67706d3c16b5ee5d415db3c4286",
           "mode": 420
         },
         ".config/mindfs/preferences.json": {
@@ -65,17 +71,10 @@
       "network_mode": "none"
     },
     {
-      "name": "browser renders container web app",
-      "passed": true,
-      "title": "MindFS RCC Container",
-      "text_excerpt": "Files\ngit\nWorktrees\nRelated files\nproject\n--\nTop up\nBack to node page\nInstall app\nInstall from the address bar icon or browser menu\nproject\nAll\nbugfix\n优化改进\n新功能\nPending\n0\nNo tasks\nIn progress\n0\nNo tasks\nDone\n0\nNo tasks\nNothing here. If this project already has sessions, use the import button above. I",
-      "page_errors": []
-    },
-    {
       "name": "delivered image and Compose start, original commands and web assets",
       "passed": true,
-      "container": "b5bdab41f04bc57204a7be4441f0eb093a5af4b368f2afbd6454bab3fcc4f276",
-      "image_id": "sha256:0599ebd803ad488ecf7faf5c9823cf800ce277175a4dff2da216bda1bccd7274",
+      "container": "586a4baa10bdba6ea695bdbec2bb5bbfd7d3bbddfe49c876fffd48a262a2c73c",
+      "image_id": "sha256:382a12315214ec5fe764d406337ba5918a832f0416a3dac09d005b4c69146cd8",
       "uid": "mindfs",
       "rcc_mount": {
         "Type": "bind",
@@ -91,7 +90,7 @@
     {
       "name": "actual MindFS Codex SDK starts fake app-server and completes two turns",
       "passed": true,
-      "session": "1794235380-d71678c3f73c",
+      "session": "1794236240-3e0794959013",
       "app_server_starts": 1
     },
     {
@@ -107,13 +106,40 @@
       "public_metadata_sha256": "279ecfa0eff29caf49193c2c5b541911ad963e581634988b1a65d8b812dd9487"
     },
     {
+      "name": "imported agent env keeps private paths and refreshes runtime snapshot without rewriting source",
+      "passed": true,
+      "observed_start": {
+        "argv": [
+          "/fixtures/fake-codex",
+          "app-server",
+          "-c",
+          "thread_unload_delay_secs=0"
+        ],
+        "at": "2026-11-09T14:57:23.826427644Z",
+        "codex_home": "/home/mindfs/.codex",
+        "config": "# independent fixture provider-v1\nmodel = \"fixture-model\"\nmodel_provider = \"fixture\"\n\n[model_providers.fixture]\nname = \"Fixture provider 2\"\nbase_url = \"http://127.0.0.1:9/provider-v2/v1\"\nwire_api = \"responses\"\nexperimental_bearer_token = \"not-a-real-key\"\n",
+        "config_sha256": "95f8db278da2ab4c250de37250a324009a849b70a529436f8dec391c85829c2e",
+        "cwd": "/tmp/mindfs-container-independent-oNYcUv/project",
+        "fixture_env": "present",
+        "home": "/home/mindfs",
+        "kind": "start",
+        "path": "/opt/rcc/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "pid": 22,
+        "runtime_env": "runtime-v2",
+        "transient_env": "",
+        "xdg_config_home": "/home/mindfs/.config",
+        "xdg_state_home": "/home/mindfs/.local/state"
+      },
+      "private_agents_sha256": "3431306e7601ef5562fa0fb6e5214218356e095ae0643f28502eb4645389e244"
+    },
+    {
       "name": "new container retains the private volume state",
       "passed": true,
-      "old_container": "b5bdab41f04bc57204a7be4441f0eb093a5af4b368f2afbd6454bab3fcc4f276",
-      "new_container": "6b2fa2176a4c420df315c522ed44ce0cac2a8b80fc07d0d18f096cd376977035"
+      "old_container": "586a4baa10bdba6ea695bdbec2bb5bbfd7d3bbddfe49c876fffd48a262a2c73c",
+      "new_container": "f58db2d849882bec8f4bb2ff708f906ff26ebe2e30b9418b499b2276030b8300"
     }
   ],
-  "reused_image_id": "sha256:0599ebd803ad488ecf7faf5c9823cf800ce277175a4dff2da216bda1bccd7274",
+  "reused_image_id": "sha256:382a12315214ec5fe764d406337ba5918a832f0416a3dac09d005b4c69146cd8",
   "passed": true,
   "remaining_owned_containers": [],
   "remaining_owned_networks": []
