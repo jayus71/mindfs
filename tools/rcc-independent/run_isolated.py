@@ -18,6 +18,9 @@ if a.action=='setup':
     print('Independent isolated actual RCC fixture configured')
     sys.exit(0)
 assert a.test_binary
+# The SDK set_model control request also performs non-streaming model validation.
+integration_vm.copy(a.state, f.manifest, "runtime", pathlib.Path(__file__).with_name("anthropic_mock.py"), "/opt/rcc87s3/mock")
+f.remote("runtime", ["chmod", "755", "/opt/rcc87s3/mock"])
 steps=[]
 if a.action in ('question','cancel-resume'):
     steps=[{'name':'Write','input':{'file_path':str(f.project/'permission-created.txt'),'content':'MINDFS_RCC_NODE_WRITE\n'}}, {'name':'Read','input':{'file_path':str(f.project/'permission-created.txt')}}, {'name':'Bash','input':{'command':'cat permission-created.txt; printf MINDFS_RCC_NODE_BASH'}}, {'name':'AskUserQuestion','input':{'questions':[{'question':'Pick a color?','header':'Color','options':[{'label':'Blue','description':'Blue option'},{'label':'Red','description':'Red option'}],'multiSelect':False}]}}]
