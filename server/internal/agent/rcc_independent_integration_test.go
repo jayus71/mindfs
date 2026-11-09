@@ -73,7 +73,7 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 		if e.Type == agenttypes.EventTypeMessageChunk {
 			chunks++
 		}
-		if call, ok := e.Data.(agenttypes.ToolCall); ok && call.Kind == agenttypes.ToolKindAskUser && call.Status == "running" && e.Type == agenttypes.EventTypeToolCall {
+		if call, ok := e.Data.(agenttypes.ToolCall); ok && call.Kind == agenttypes.ToolKindAskUser && call.Meta["toolUseId"] == call.CallID && call.Status == "running" && e.Type == agenttypes.EventTypeToolCall {
 			questions++
 			select {
 			case questionReached <- struct{}{}:
@@ -113,7 +113,7 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 			t.Fatalf("reopen cancelled session: %v", e)
 		}
 		next.OnUpdate(func(e agenttypes.Event) {
-			if call, ok := e.Data.(agenttypes.ToolCall); ok && call.Kind == agenttypes.ToolKindAskUser && e.Type == agenttypes.EventTypeToolCall {
+			if call, ok := e.Data.(agenttypes.ToolCall); ok && call.Kind == agenttypes.ToolKindAskUser && call.Meta["toolUseId"] == call.CallID && e.Type == agenttypes.EventTypeToolCall {
 				go next.AnswerQuestion(ctx, agenttypes.AskUserAnswer{ToolUseID: call.CallID, Answers: map[string]string{"Pick a color?": "Blue"}})
 			}
 		})
