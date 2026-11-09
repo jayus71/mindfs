@@ -126,7 +126,7 @@ try:
  assert api('/health')[2]=='ok';assert 'mindfs version:' in dex('mindfs','--version').stdout
  codex_version=dex('codex','--version').stdout.strip();assert 'codex-cli 0.162.1' in codex_version,codex_version
  html=api('/')[2];assert '<html' in html and re.search(r'<script[^>]+src=',html),html[:600]
- script=re.search(r'<script[^>]+src="([^"]+)"',html).group(1);status,_,js=api(script);assert status==200 and len(js)>10000
+ script=re.search(r'<script[^>]+src="([^"]+)"',html).group(1);status,_,js=api('/'+script.removeprefix('./').lstrip('/'));assert status==200 and len(js)>10000
  if a.playwright_module:
   browser=run(['node',str(pathlib.Path(__file__).with_name('browser_check.mjs')),a.playwright_module,f'http://127.0.0.1:{port}',str(evidence/'web.png')]);record('browser renders container web app',**json.loads(browser.stdout))
  record('delivered image and Compose start, original commands and web assets',container=cid,image_id=inspect['Image'],uid=inspect['Config']['User'],rcc_mount=next(m for m in mounts if m['Destination']=='/opt/rcc'),web_script=script,codex_version=codex_version)
