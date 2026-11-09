@@ -53,6 +53,9 @@ func TestRCCProcessHelper(t *testing.T) {
 		switch msg["type"] {
 		case "control_request":
 			req, _ := msg["request"].(map[string]any)
+			if req["subtype"] == "set_model" {
+				_ = os.WriteFile(os.Getenv("MINDFS_RCC_CAPTURE")+".model", []byte(fmt.Sprint(req["model"])), 0600)
+			}
 			emit(map[string]any{"type": "control_response", "response": map[string]any{"subtype": "success", "request_id": msg["request_id"], "response": map[string]any{}}})
 			if req["subtype"] == "initialize" {
 				emit(map[string]any{"type": "system", "subtype": "init", "session_id": "remote-session"})
@@ -111,6 +114,8 @@ func rccTestOptions(t *testing.T) OpenOptions {
 func TestRCCSDKProcessRoundtripAndResume(t *testing.T) {
 	opts := rccTestOptions(t)
 	opts.ResumeSessionID = "remote-history-id"
+	opts.Model = "sonnet"
+	opts.Effort = "high"
 	opts.DeveloperInstructions = "keep instructions separate"
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -130,6 +135,9 @@ func TestRCCSDKProcessRoundtripAndResume(t *testing.T) {
 	if err := sess.SetModel(ctx, "remote-model"); err != nil {
 		t.Fatal(err)
 	}
+	if raw, err := os.ReadFile(opts.Env["MINDFS_RCC_CAPTURE"] + ".model"); err != nil || string(raw) != "remote-model" {
+		t.Fatalf("set_model control = %q, %v", raw, err)
+	}
 	if err := sess.SetPlanMode(ctx, true); err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +156,7 @@ func TestRCCSDKProcessRoundtripAndResume(t *testing.T) {
 	if !reflect.DeepEqual(capture.Args[:3], []string{"-test.run=^TestRCCProcessHelper$", "--", "-p"}) {
 		t.Fatalf("argv = %#v", capture.Args)
 	}
-	for _, pair := range [][2]string{{"--input-format", "stream-json"}, {"--output-format", "stream-json"}, {"--resume", "remote-history-id"}, {"--append-system-prompt", opts.DeveloperInstructions}} {
+	for _, pair := range [][2]string{{"--input-format", "stream-json"}, {"--output-format", "stream-json"}, {"--resume", "remote-history-id"}, {"--model", "sonnet"}, {"--effort", "high"}, {"--append-system-prompt", opts.DeveloperInstructions}} {
 		found := false
 		for i := 0; i+1 < len(capture.Args); i++ {
 			if capture.Args[i] == pair[0] && capture.Args[i+1] == pair[1] {
@@ -169,6 +177,8 @@ func TestRCCSDKProcessRoundtripAndResume(t *testing.T) {
 		t.Fatalf("shutdown signal = %s, %v", raw, err)
 	}
 	// A new client resumes using a remote ID, without reading local history.
+	opts.Model = "opus"
+	opts.Effort = "low"
 	sess, err = NewRuntime().OpenSession(ctx, opts)
 	if err != nil {
 		t.Fatal(err)
@@ -176,6 +186,45 @@ func TestRCCSDKProcessRoundtripAndResume(t *testing.T) {
 	defer sess.Close()
 	if err := sess.SendMessage(ctx, "after restart"); err != nil {
 		t.Fatal(err)
+	}
+	raw, err = os.ReadFile(opts.Env["MINDFS_RCC_CAPTURE"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(raw, &capture); err != nil {
+		t.Fatal(err)
+	}
+	for _, pair := range []string{"--resume remote-history-id", "--model opus", "--effort low"} {
+		if !strings.Contains(strings.Join(capture.Args, " "), pair) {
+			t.Fatalf("reopened argv missing %q: %v", pair, capture.Args)
+		}
+	}
+}
+
+func TestRCCDefaultDoesNotChooseLocalModel(t *testing.T) {
+	opts := rccTestOptions(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	sess, err := NewRuntime().OpenSession(ctx, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sess.Close()
+	raw, err := os.ReadFile(opts.Env["MINDFS_RCC_CAPTURE"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var capture struct{ Args []string }
+	if err := json.Unmarshal(raw, &capture); err != nil {
+		t.Fatal(err)
+	}
+	for _, arg := range capture.Args {
+		if arg == "--model" || arg == "--effort" {
+			t.Fatalf("runtime default overridden: %v", capture.Args)
+		}
+	}
+	if _, err := os.Stat(opts.Env["MINDFS_RCC_CAPTURE"] + ".model"); !os.IsNotExist(err) {
+		t.Fatalf("default session sent set_model: %v", err)
 	}
 }
 

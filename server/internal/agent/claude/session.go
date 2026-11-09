@@ -132,6 +132,10 @@ func (r *Runtime) OpenSession(ctx context.Context, opts OpenOptions) (types.Sess
 		for _, apply := range optionList {
 			apply(&transportOptions)
 		}
+		// The SDK requires a model in its client options and supplies a concrete
+		// default. Only the transport controls argv: clear that default here so
+		// an unselected RCC session inherits the remote CLI configuration.
+		transportOptions.Model = strings.TrimSpace(opts.Model)
 		transport, err := newRCCTransport(opts.Command, opts.Args, &transportOptions)
 		if err != nil {
 			return nil, err

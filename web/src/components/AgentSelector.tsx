@@ -260,6 +260,9 @@ export function AgentSelector({
     () => submenuAgentStatus?.models ?? [],
     [submenuAgentStatus],
   );
+  // RCC's catalog contains runtime-resolved aliases. The empty selection
+  // preserves the remote CLI default, including before the first session.
+  const submenuAllowsDefaultModel = allowDefaultModel || submenuAgentStatus?.protocol === "rcc";
   const enableModelSearch = submenuModels.length > AGENT_MODEL_SEARCH_THRESHOLD;
   const pinnedModelIDs = getModelPins(submenuAgent || "", submenuAgentStatus?.pinned_models);
   const filteredSubmenuModels = useMemo(
@@ -983,7 +986,7 @@ export function AgentSelector({
                   expanded={modelSectionExpanded}
                   onToggle={() => setModelSectionExpanded((prev) => !prev)}
                   value={
-                    allowDefaultModel && submenuAgentStatus.name === agent && !model
+                    submenuAllowsDefaultModel && submenuAgentStatus.name === agent && !model
                       ? t("agent.defaultModel")
                       : submenuSelectedModel?.id || undefined
                   }
@@ -1024,7 +1027,7 @@ export function AgentSelector({
                         />
                       </div>
                     ) : null}
-                    {allowDefaultModel &&
+                    {submenuAllowsDefaultModel &&
                     filteredSubmenuModels.length > 0 ? (
                       <button
                         type="button"
@@ -1038,7 +1041,7 @@ export function AgentSelector({
                           {t("agent.defaultModel")}
                         </span>
                         <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
-                          {t("agent.defaultModelDescription")}
+                          {t(submenuAgentStatus.protocol === "rcc" ? "agent.rccDefaultModelDescription" : "agent.defaultModelDescription")}
                         </span>
                       </button>
                     ) : null}
@@ -1063,7 +1066,7 @@ export function AgentSelector({
                             item.id === (submenuSelectedModel?.id || "")
                           }
                           topBorder={
-                            (allowDefaultModel &&
+                            (submenuAllowsDefaultModel &&
                               filteredSubmenuModels.length > 0) ||
                             index > 0
                           }

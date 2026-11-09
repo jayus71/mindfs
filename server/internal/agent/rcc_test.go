@@ -122,6 +122,17 @@ func TestRCCProbeOnlyChecksInstallationAndRejectsLocalHistory(t *testing.T) {
 	if !st.Available || !st.Installed || st.ProbeError != "" {
 		t.Fatalf("installation status = %+v", st)
 	}
+	if len(st.Models) != 3 || st.Models[0].ID != "sonnet" || st.Models[1].ID != "opus" || st.Models[2].ID != "fable" {
+		t.Fatalf("runtime aliases = %+v", st.Models)
+	}
+	for _, model := range st.Models {
+		if model.SupportEffort || len(model.Efforts) != 0 || !strings.Contains(model.Description, "运行端") {
+			t.Fatalf("alias advertised unverified capabilities: %+v", model)
+		}
+	}
+	if st.DefaultModelID != "" || st.CurrentModelID != "" || len(st.Efforts) != 0 {
+		t.Fatalf("probe inferred remote defaults: %+v", st)
+	}
 	if _, err := NewExternalSessionImporter(def); err == nil || !strings.Contains(err.Error(), "remote history") {
 		t.Fatalf("importer = %v", err)
 	}

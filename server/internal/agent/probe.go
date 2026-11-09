@@ -804,10 +804,25 @@ func probeInstallStatus(name string, def Definition, ts time.Time) Status {
 	status.Installed = true
 	if status.Protocol == ProtocolRCC {
 		status.Available = true
+		// These are CLI aliases resolved by the authenticated runtime, not a
+		// discovered catalog or a promise of account access. Never inspect the
+		// work node's Claude/provider configuration for an RCC agent.
+		status.Models = rccModelAliases()
 		return status
 	}
 	status.ProbeError = "probe pending"
 	return status
+}
+
+func rccModelAliases() []agenttypes.ModelInfo {
+	models := make([]agenttypes.ModelInfo, 0, 3)
+	for _, alias := range []string{"sonnet", "opus", "fable"} {
+		models = append(models, agenttypes.ModelInfo{
+			ID: alias, Name: alias + "（运行端别名）",
+			Description: "由运行端官方 Claude Code 解析；具体版本和账号可用性以运行端为准。",
+		})
+	}
+	return models
 }
 
 func agentDefinitionProtocol(name string, def Definition) Protocol {

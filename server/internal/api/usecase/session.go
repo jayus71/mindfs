@@ -3962,6 +3962,11 @@ func (s *Service) validateAgentModel(agentName, model string) error {
 		return nil
 	}
 	status, ok := prober.GetStatus(agentName)
+	// RCC's global choices are runtime-resolved CLI aliases, not an
+	// exhaustive account catalog. Full model IDs remain runtime-validated.
+	if ok && status.Protocol == agent.ProtocolRCC {
+		return nil
+	}
 	if !ok || len(status.Models) == 0 {
 		return nil
 	}

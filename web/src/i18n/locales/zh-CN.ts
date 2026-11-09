@@ -244,6 +244,7 @@ export const zhCN = {
   "idleSessionResourceRelease.saveFailed": "保存空闲会话资源释放设置失败",
   "agent.defaultModel": "默认模型",
   "agent.defaultModelDescription": "跟随该 agent 当前的默认模型",
+  "agent.rccDefaultModelDescription": "新会话沿用运行端默认；已有会话保留当前模型",
   "agent.modelSearchPlaceholder": "搜索模型...",
   "agent.modelNoMatch": "未找到匹配的模型",
   "agent.pinModel": "置顶模型",

@@ -246,6 +246,7 @@ export const enUS = {
   "idleSessionResourceRelease.saveFailed": "Failed to save idle session resource release settings",
   "agent.defaultModel": "Default model",
   "agent.defaultModelDescription": "Follow this Agent's current default model",
+  "agent.rccDefaultModelDescription": "Use the runtime default for new sessions; keep the current model for existing sessions",
   "agent.modelSearchPlaceholder": "Search models...",
   "agent.modelNoMatch": "No matching models",
   "agent.pinModel": "Pin model",
