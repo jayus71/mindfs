@@ -460,6 +460,12 @@ func defaultConfig() Config {
 		Shells: shells,
 		Agents: []Definition{
 			{
+				Name:     "rcc",
+				Command:  "rcc",
+				Protocol: ProtocolRCC,
+				Brief:    "远端 Claude Code，经 RCC 工作节点连接；先完成 rcc login 与项目确认。模型和官方凭据由运行端管理，同一项目仅支持一个活动会话。",
+			},
+			{
 				Name:     "claude",
 				Command:  "claude",
 				Protocol: ProtocolClaudeSDK,

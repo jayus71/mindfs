@@ -153,6 +153,14 @@
       }
     },
     {
+      "name": "rcc",
+      "brief": "远端 Claude Code，经 RCC 工作节点连接；先安装 RCC、完成 rcc login 并确认项目。模型和官方凭据由运行端管理，同一项目仅支持一个活动会话。安装检测不打开远端会话。",
+      "command": "rcc",
+      "protocol": "rcc",
+      "args": [],
+      "configBackup": {}
+    },
+    {
       "name": "grok",
       "brief": "Bring Grok into your terminal.",
       "installCommands": [

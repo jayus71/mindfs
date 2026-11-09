@@ -545,6 +545,13 @@ func probeInstalledAgentWithPool(ctx context.Context, name string, def Definitio
 		return status
 	}
 	status.Installed = true
+	if agentDefinitionProtocol(name, def) == ProtocolRCC {
+		// Installation is the only global check: opening a temporary project
+		// would require node authorization and could consume a remote session.
+		status.Available = true
+		status.ProbeError = ""
+		return status
+	}
 
 	tmpRoot, err := EnsureStableWorkDir("agent-probe", name)
 	if err != nil {
@@ -782,6 +789,10 @@ func probeInstallStatus(name string, def Definition, ts time.Time) Status {
 	status.Brief = strings.TrimSpace(def.Brief)
 	status.InstallCommands = append([]string(nil), def.InstallCommands...)
 	status.UpdateCommands = append([]string(nil), def.UpdateCommands...)
+	if status.Protocol == ProtocolRCC && runtime.GOOS != "linux" {
+		status.ProbeError = "RCC agent requires a Linux work node"
+		return status
+	}
 	if def.Command == "" {
 		status.ProbeError = "command required"
 		return status
@@ -791,6 +802,10 @@ func probeInstallStatus(name string, def Definition, ts time.Time) Status {
 		return status
 	}
 	status.Installed = true
+	if status.Protocol == ProtocolRCC {
+		status.Available = true
+		return status
+	}
 	status.ProbeError = "probe pending"
 	return status
 }

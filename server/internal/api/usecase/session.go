@@ -2083,7 +2083,7 @@ func shouldReopenSessionForSetting(pool *agent.Pool, agentName, currentValue, ne
 	if protocol == "" {
 		protocol = agent.DefaultProtocol(agentName)
 	}
-	return protocol == agent.ProtocolCodexSDK || protocol == agent.ProtocolClaudeSDK
+	return protocol == agent.ProtocolCodexSDK || protocol == agent.ProtocolClaudeSDK || protocol == agent.ProtocolRCC
 }
 
 func resolveRuntimeModel(current *session.Session, runtime agenttypes.Session, requested string) string {

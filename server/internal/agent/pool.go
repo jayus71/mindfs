@@ -77,7 +77,7 @@ func (p *Pool) SupportsDeveloperInstructions(agentName string) bool {
 	if protocol == "" {
 		protocol = DefaultProtocol(agentName)
 	}
-	return protocol == ProtocolCodexSDK || protocol == ProtocolClaudeSDK
+	return protocol == ProtocolCodexSDK || protocol == ProtocolClaudeSDK || protocol == ProtocolRCC
 }
 
 // GetOrCreate returns an existing session handle or creates a new one.
@@ -85,6 +85,8 @@ func (p *Pool) GetOrCreate(ctx context.Context, in agenttypes.OpenSessionInput) 
 	if in.SessionKey == "" {
 		return nil, errors.New("session key required")
 	}
+	// Prune disconnected remote handles before the normal creation path.
+	_, _ = p.Get(in.SessionKey)
 
 	p.mu.Lock()
 retryExisting:
@@ -153,7 +155,7 @@ retryExisting:
 		existing := entry.session
 		entry.lastUsedAt = time.Now()
 		p.mu.Unlock()
-		if protocol == ProtocolClaudeSDK {
+		if protocol == ProtocolClaudeSDK || protocol == ProtocolRCC {
 			_ = sess.Close()
 		}
 		return existing, nil
@@ -352,8 +354,12 @@ func (p *Pool) StartIdleReleaseLoop(ctx context.Context, idleFor func() time.Dur
 
 func (p *Pool) openSession(ctx context.Context, protocol Protocol, def Definition, in agenttypes.OpenSessionInput) (agenttypes.Session, error) {
 	switch protocol {
-	case ProtocolClaudeSDK:
+	case ProtocolClaudeSDK, ProtocolRCC:
+		if protocol == ProtocolRCC && in.Probe {
+			return nil, errors.New("RCC requires an explicitly authorized project; runtime probes are disabled")
+		}
 		return p.claude.OpenSession(ctx, claude.OpenOptions{
+			RCC:                   protocol == ProtocolRCC,
 			AgentName:             in.AgentName,
 			SessionKey:            in.SessionKey,
 			Model:                 in.Model,
@@ -424,8 +430,8 @@ func (p *Pool) KillAgentProcess(agentName string, wait time.Duration) (string, b
 	unlockRuntime := p.lockRuntimeGroups([]runtimeGroup{{agentName: agentName, protocol: protocol}})
 	defer unlockRuntime()
 	switch protocol {
-	case ProtocolClaudeSDK:
-		p.closeSessionsForAgent(agentName, ProtocolClaudeSDK)
+	case ProtocolClaudeSDK, ProtocolRCC:
+		p.closeSessionsForAgent(agentName, protocol)
 		log.Printf("[agent/pool] kill_agent_process.claude_closed agent=%s", agentName)
 		return "", true
 	case ProtocolCodexSDK:
@@ -603,11 +609,21 @@ func (p *Pool) applyRuntimeEnvOverridesLocked(cfg Config) Config {
 // Get returns an existing session handle if present.
 func (p *Pool) Get(sessionKey string) (agenttypes.Session, bool) {
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	entry, ok := p.sessions[sessionKey]
 	if !ok || entry == nil || entry.session == nil {
+		p.mu.Unlock()
 		return nil, false
 	}
+	if entry.protocol == ProtocolRCC {
+		if health, ok := entry.session.(interface{ Reusable() bool }); ok && !health.Reusable() {
+			p.mu.Unlock()
+			unlock := p.lockRuntimeGroups([]runtimeGroup{{agentName: entry.agentName, protocol: entry.protocol}})
+			p.closeSessions(p.takeSessions(func(candidate *sessionEntry) bool { return candidate == entry }))
+			unlock()
+			return nil, false
+		}
+	}
+	p.mu.Unlock()
 	return entry.session, true
 }
 
@@ -660,7 +676,7 @@ func (p *Pool) CloseAll() {
 	// concurrently so shutdown is bounded by one SDK grace period.
 	var claudeCloseWG sync.WaitGroup
 	for _, entry := range sessions {
-		if entry == nil || entry.protocol != ProtocolClaudeSDK || entry.session == nil {
+		if entry == nil || (entry.protocol != ProtocolClaudeSDK && entry.protocol != ProtocolRCC) || entry.session == nil {
 			continue
 		}
 		claudeCloseWG.Add(1)

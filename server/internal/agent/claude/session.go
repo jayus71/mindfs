@@ -43,6 +43,7 @@ type claudeTaskInfo struct {
 }
 
 type OpenOptions struct {
+	RCC                   bool
 	AgentName             string
 	SessionKey            string
 	Model                 string
@@ -67,6 +68,9 @@ func NewRuntime() *Runtime {
 func (r *Runtime) OpenSession(ctx context.Context, opts OpenOptions) (types.Session, error) {
 	if opts.SessionKey == "" {
 		return nil, errors.New("session key required")
+	}
+	if opts.RCC && (opts.ForkSessionID != "" || opts.ResumeMessageID != "") {
+		return nil, errors.New("RCC message-level forks are not supported; resume a remote session by ID")
 	}
 
 	s := &session{
@@ -123,6 +127,18 @@ func (r *Runtime) OpenSession(ctx context.Context, opts OpenOptions) (types.Sess
 	if opts.PlanMode {
 		optionList = append(optionList, claudeagent.WithPermissionMode(claudeagent.PermissionModePlan))
 	}
+	if opts.RCC {
+		transportOptions := claudeagent.DefaultOptions()
+		for _, apply := range optionList {
+			apply(&transportOptions)
+		}
+		transport, err := newRCCTransport(opts.Command, opts.Args, &transportOptions)
+		if err != nil {
+			return nil, err
+		}
+		s.rccTransport = transport
+		optionList = append(optionList, claudeagent.WithTransport(transport))
+	}
 
 	client, err := claudeagent.NewClient(optionList...)
 	if err != nil {
@@ -131,11 +147,14 @@ func (r *Runtime) OpenSession(ctx context.Context, opts OpenOptions) (types.Sess
 	stream, err := client.Stream(ctx)
 	if err != nil {
 		client.Close()
+		if s.rccTransport != nil && s.rccTransport.Err() != nil {
+			return nil, fmt.Errorf("open RCC session: %w", s.rccTransport.Err())
+		}
 		return nil, err
 	}
 
 	selectedModel := strings.TrimSpace(opts.Model)
-	if selectedModel == "" && opts.ResumeSessionID == "" {
+	if selectedModel == "" && opts.ResumeSessionID == "" && !opts.RCC {
 		if candidate, ok := claudeFirstAvailableModel(client); ok {
 			selectedModel = candidate
 		}
@@ -190,8 +209,9 @@ func claudeFirstAvailableModel(client *claudeagent.Client) (string, bool) {
 }
 
 type session struct {
-	client *claudeagent.Client
-	stream *claudeagent.Stream
+	rccTransport *rccTransport
+	client       *claudeagent.Client
+	stream       *claudeagent.Stream
 
 	mu         sync.RWMutex
 	onUpdate   func(types.Event)
@@ -232,6 +252,15 @@ func (s *session) ProcessID() int {
 	return s.client.ProcessID()
 }
 
+// Reusable reports whether a remote client is still attached. A canceled or
+// exited RCC session must be reopened with its persisted remote session ID.
+func (s *session) Reusable() bool {
+	if s.rccTransport == nil {
+		return true
+	}
+	return s.rccTransport.IsReady()
+}
+
 type askUserAnswerResult struct {
 	answers claudeagent.Answers
 	err     error
@@ -244,27 +273,38 @@ func (s *session) SendMessage(ctx context.Context, content string) error {
 	if s.stream == nil {
 		return errors.New("claude session not initialized")
 	}
+	if s.rccTransport != nil && !s.rccTransport.IsReady() {
+		if err := s.rccTransport.Err(); err != nil {
+			return err
+		}
+		return errors.New("RCC session closed; reopen with its remote session ID")
+	}
 	turnCtx, turnID := s.turn.Begin(ctx)
 	defer s.turn.End(turnID)
-	s.sawMessageText = false
 	log.Printf("[agent/claude] input session=%s content=%q", s.sessionKey, preview(content))
 
 	waiter := make(chan error, 1)
 	s.enqueueTurn(waiter)
 	if err := s.stream.Send(turnCtx, content); err != nil {
 		s.dequeueTurn(waiter)
+		if s.rccTransport != nil && turnCtx.Err() != nil {
+			_ = s.Close()
+		}
 		log.Printf("[agent/claude] send.error session=%s err=%v", s.sessionKey, err)
 		return err
 	}
 
 	select {
 	case err := <-waiter:
-		if err != nil && !isTurnCanceledError(err) {
+		if err != nil && !isTurnCanceledError(err) && s.rccTransport == nil {
 			log.Printf("[agent/claude] send.error session=%s err=%v", s.sessionKey, err)
 		}
 		return err
 	case <-turnCtx.Done():
 		s.dequeueTurn(waiter)
+		if s.rccTransport != nil {
+			_ = s.Close()
+		}
 		log.Printf("[agent/claude] send.error session=%s err=%v", s.sessionKey, turnCtx.Err())
 		return turnCtx.Err()
 	}
@@ -427,7 +467,9 @@ func (s *session) ListModels(ctx context.Context) (types.ModelList, error) {
 	for _, model := range supported {
 		models = append(models, claudeModelInfo(model))
 	}
-	models = providermodels.Supplement(s.agentName, "anthropic-compatible", models)
+	if s.rccTransport == nil {
+		models = providermodels.Supplement(s.agentName, "anthropic-compatible", models)
+	}
 	log.Printf("[agent/claude] models.cached session=%s count=%d", s.sessionKey, len(models))
 	currentModelID := ""
 	if selected := s.CurrentModel(); selected != "" {
@@ -512,6 +554,11 @@ func (s *session) ContextWindow(_ context.Context) (types.ContextWindow, error) 
 
 func (s *session) CancelCurrentTurn() error {
 	s.cancelPendingQuestions(errors.New("turn canceled"))
+	if s.rccTransport != nil {
+		s.turn.Cancel()
+		s.failPendingTurns(context.Canceled)
+		return s.Close()
+	}
 	if s.stream == nil {
 		s.turn.Cancel()
 		return nil
@@ -658,15 +705,19 @@ func (s *session) consumeMessages() {
 				SessionID: s.SessionID(),
 				Data:      types.MessageDone{ContextWindow: contextWindow, TokenUsage: tokenUsage},
 			})
-			s.completeTurn(resultErr(m))
 			s.sawDelta = false
 			s.sawMessageText = false
+			s.completeTurn(resultErr(m))
 		default:
 			s.logRawMessage(raw)
 		}
 	}
 
-	s.failPendingTurns(errors.New("response stream ended unexpectedly"))
+	streamErr := errors.New("response stream ended unexpectedly")
+	if s.rccTransport != nil && s.rccTransport.Err() != nil {
+		streamErr = s.rccTransport.Err()
+	}
+	s.failPendingTurns(streamErr)
 }
 
 func (s *session) handlePartialAssistantMessage(rawEvent json.RawMessage, meta subagentMeta) {

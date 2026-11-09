@@ -158,7 +158,7 @@ export function AgentIcon({ agentName, ...props }: AgentIconProps) {
     icon = ICON_URLS.codebuddy;
   } else if (lowerAgentName.includes('codex')) {
     icon = ICON_URLS.codex;
-  } else if (lowerAgentName.includes('claude')) {
+  } else if (lowerAgentName.includes('claude') || lowerAgentName === 'rcc') {
     icon = ICON_URLS.claude;
   } else if (lowerAgentName.includes('gemini')) {
     icon = ICON_URLS.gemini;

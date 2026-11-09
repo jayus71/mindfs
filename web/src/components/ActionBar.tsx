@@ -815,7 +815,7 @@ export function ActionBar({
           const supportsPlanCommand =
             activeToken.type !== "slash" ||
             mode === "command" ||
-            ["codex", "claude"].includes(agent.trim().toLowerCase());
+            ["codex", "claude", "rcc"].includes(agent.trim().toLowerCase());
           const filteredItems = supportsPlanCommand
             ? items
             : items.filter(

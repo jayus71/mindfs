@@ -232,6 +232,10 @@ MindFS 会自动探测已安装 Agent 的可用性，通常需要大约一分钟
 2. 登录 relayer，确认绑定。
 3. 打开节点。
 
+### RCC 远端 Claude Code
+
+Linux 工作节点可选择内置 `rcc` Agent，连接运行端的 Claude Code。请先在该工作节点完成 `rcc login` 和项目确认；官方 CLI 与凭据保留在运行端。同一 RCC 项目同时只运行一个活动会话，模型使用运行端默认配置。配置示例、恢复行为与功能范围见 [RCC 接入说明](docs/RCC_AGENT.md)。
+
 ### 自定义 ACP Agent
 
 MindFS 可以额外加载一个 `agents.json`，用于支持实现 ACP 协议的自定义 Agent CLI。适合测试新的 Agent，或把项目专用 Agent 定义放在内置默认配置之外。

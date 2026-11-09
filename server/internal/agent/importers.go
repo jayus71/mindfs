@@ -22,6 +22,8 @@ func NewExternalSessionImporter(def Definition) (agenttypes.ExternalSessionImpor
 		protocol = DefaultProtocol(agentName)
 	}
 	switch protocol {
+	case ProtocolRCC:
+		return nil, errors.New("RCC remote history import and message-level forks are not supported")
 	case ProtocolClaudeSDK:
 		return claude.NewImporter(claude.ImporterOptions{
 			AgentName: agentName,
