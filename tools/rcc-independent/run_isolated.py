@@ -24,11 +24,19 @@ f.remote("runtime", ["chmod", "755", "/opt/rcc87s3/mock"])
 steps=[]
 if a.action in ('question','cancel-resume'):
     steps=[{'name':'Write','input':{'file_path':str(f.project/'permission-created.txt'),'content':'MINDFS_RCC_NODE_WRITE\n'}}, {'name':'Read','input':{'file_path':str(f.project/'permission-created.txt')}}, {'name':'Bash','input':{'command':'cat permission-created.txt; printf MINDFS_RCC_NODE_BASH'}}, {'name':'AskUserQuestion','input':{'questions':[{'question':'Pick a color?','header':'Color','options':[{'label':'Blue','description':'Blue option'},{'label':'Red','description':'Red option'}],'multiSelect':False}]}}]
-f.mock(empty=True)
-f.remote('runtime',['python3','-c','import pathlib,sys;p=pathlib.Path("/opt/rcc87s3/mock-steps.json");p.write_text(sys.stdin.read());p.chmod(0o444)'],json.dumps(steps))
-# Restart the mock so it loads this scenario's controlled sequence.
-f.remote('runtime',['systemctl','restart','rcc87s3-mock.service'])
-url=f.remote('runtime',['python3','-c','import pathlib,time;p=pathlib.Path("/srv/rcc87s3/home/alice/mock-url");time.sleep(1);print(p.read_text().strip())']).stdout.strip()
+start_mock = r"""import json,pathlib,subprocess,time,sys
+steps=json.load(sys.stdin)
+p=pathlib.Path('/opt/rcc87s3/mock-steps.json');p.write_text(json.dumps(steps));p.chmod(0o444)
+subprocess.run(['systemctl','stop','rcc87s3-mock.service'],check=False)
+subprocess.run(['systemctl','reset-failed','rcc87s3-mock.service'],check=False)
+home=pathlib.Path('/srv/rcc87s3/home/alice')
+for name in ['mock-url','mock-requests.jsonl']:(home/name).unlink(missing_ok=True)
+subprocess.run(['systemd-run','--unit=rcc87s3-mock','--property=Type=exec','--property=User=2285','--property=WorkingDirectory='+str(home),'/usr/bin/python3','/opt/task87s3-integration-guest.py','mock'],check=True)
+deadline=time.monotonic()+25
+while not (home/'mock-url').exists() and time.monotonic()<deadline:time.sleep(.1)
+print((home/'mock-url').read_text().strip())
+"""
+url=f.remote('runtime',['python3','-c',start_mock],json.dumps(steps)).stdout.strip()
 f.guest('settings',{'name':'alice','env':{'ANTHROPIC_BASE_URL':url,'ANTHROPIC_API_KEY':'s0-mock-only'}})
 env=dict(os.environ,RCC_INDEPENDENT_STATE=str(a.state),RCC_INDEPENDENT_BINARY=str(a.rcc),RCC_INDEPENDENT_SCENARIO=a.action,HOME=str(a.state/'client-home'))
 start=time.monotonic()
