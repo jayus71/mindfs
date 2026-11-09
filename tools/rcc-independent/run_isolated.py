@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Independent actual RCC/official Claude VM fixture driver; no production access."""
 import argparse, hashlib, json, os, pathlib, subprocess, sys, time
+sys.dont_write_bytecode = True
 
 p=argparse.ArgumentParser()
 p.add_argument('--rcc-source',type=pathlib.Path,required=True)
