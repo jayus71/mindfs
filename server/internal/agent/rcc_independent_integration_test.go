@@ -28,7 +28,7 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 	}
 	scenario := os.Getenv("RCC_INDEPENDENT_SCENARIO")
 	binary := os.Getenv("RCC_INDEPENDENT_BINARY")
-	project := filepath.Join(root, "projects/alice/project-a")
+	project := filepath.Join(root, "projects/alice/project-b")
 	baseArgs := []string{"--profile", filepath.Join(root, "client-profile.json"), "--client-state", filepath.Join(root, "client-alice"), "--node", "node-alice", "--confirm-project"}
 	def := Definition{Name: "rcc-independent", Protocol: Protocol("rcc"), Command: binary, Args: baseArgs,
 		Env: map[string]string{"HOME": filepath.Join(root, "client-home"), "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"}}

@@ -13,6 +13,7 @@ a=p.parse_args()
 sys.path.insert(0,str(a.rcc_source/'tools/reset-s3'))
 import integration, integration_vm
 f=integration.Fixture(argparse.Namespace(state=a.state,rcc=a.rcc))
+f.project=a.state / "projects/alice/project-b"
 if a.action=='setup':
     f.services();f.account();f.mock(empty=True)
     print('Independent isolated actual RCC fixture configured')
