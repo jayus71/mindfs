@@ -116,7 +116,7 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 	var mu sync.Mutex
 	chunks, questions := 0, 0
 	var allowAnswer atomic.Bool
-	allowAnswer.Store(scenario != "cancel-resume")
+	allowAnswer.Store(scenario != "cancel-resume" && scenario != "cancel-api")
 	questionReached := make(chan struct{}, 1)
 	sess.OnUpdate(func(e agenttypes.Event) {
 		mu.Lock()
@@ -143,7 +143,7 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 	if err = sess.SetModel(ctx, "claude-sonnet-4-6"); err != nil {
 		t.Fatalf("set_model control request: %v", err)
 	}
-	if scenario == "cancel-resume" {
+	if scenario == "cancel-resume" || scenario == "cancel-api" {
 		turnCtx, turnCancel := context.WithCancel(ctx)
 		done := make(chan error, 1)
 		go func() { done <- sess.SendMessage(turnCtx, "MINDFS_RCC_CANCEL_PENDING") }()
@@ -153,7 +153,14 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 			t.Fatal("no pending question before cancellation")
 		}
 		id := sess.SessionID()
-		turnCancel()
+		if scenario == "cancel-api" {
+			if err = sess.CancelCurrentTurn(); err != nil {
+				t.Fatalf("CancelCurrentTurn: %v", err)
+			}
+		} else {
+			turnCancel()
+		}
+		defer turnCancel()
 		if err = <-done; !errors.Is(err, context.Canceled) {
 			t.Fatalf("turn cancellation: %v", err)
 		}

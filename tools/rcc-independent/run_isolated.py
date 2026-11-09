@@ -8,7 +8,7 @@ p.add_argument('--rcc-source',type=pathlib.Path,required=True)
 p.add_argument('--state',type=pathlib.Path,required=True)
 p.add_argument('--rcc',type=pathlib.Path,required=True)
 p.add_argument('--test-binary',type=pathlib.Path)
-p.add_argument('action',choices=['setup','basic','resume','question','terminate','cancel-resume'])
+p.add_argument('action',choices=['setup','basic','resume','question','terminate','cancel-resume','cancel-api'])
 a=p.parse_args()
 sys.path.insert(0,str(a.rcc_source/'tools/reset-s3'))
 import integration, integration_vm
@@ -23,7 +23,7 @@ assert a.test_binary
 integration_vm.copy(a.state, f.manifest, "runtime", pathlib.Path(__file__).with_name("anthropic_mock.py"), "/opt/rcc87s3/mock")
 f.remote("runtime", ["chmod", "755", "/opt/rcc87s3/mock"])
 steps=[]
-if a.action in ('question','cancel-resume'):
+if a.action in ('question','cancel-resume','cancel-api'):
     steps=[{'name':'Write','input':{'file_path':str(f.project/'permission-created.txt'),'content':'MINDFS_RCC_NODE_WRITE\n'}}, {'name':'Read','input':{'file_path':str(f.project/'permission-created.txt')}}, {'name':'Bash','input':{'command':'cat permission-created.txt; printf MINDFS_RCC_NODE_BASH'}}, {'name':'AskUserQuestion','input':{'questions':[{'question':'Pick a color?','header':'Color','options':[{'label':'Blue','description':'Blue option'},{'label':'Red','description':'Red option'}],'multiSelect':False}]}}]
 start_mock = r"""import json,pathlib,subprocess,time,sys
 steps=json.load(sys.stdin)
@@ -57,10 +57,10 @@ if a.action=='question':
     record['host_created']=(f.project/'permission-created.txt').exists()
     assert not record['host_created']
 record['status']='passed' if result.returncode==0 else 'failed'
-if a.action not in ('terminate','cancel-resume') and not record['prompt_observed']:record['status']='failed'
+if a.action not in ('terminate','cancel-resume','cancel-api') and not record['prompt_observed']:record['status']='failed'
 if a.action=='basic' and not record['second_prompt_observed']:record['status']='failed'
 if a.action=='resume' and not record['previous_remote_history_observed']:record['status']='failed'
-if a.action=='cancel-resume':
+if a.action in ('cancel-resume','cancel-api'):
     record['resumed_prompt_observed']='MINDFS_RCC_CANCEL_RESUMED' in text
     if not record['resumed_prompt_observed']:record['status']='failed'
 if a.action=='question' and not(record['answer_observed'] and record['node_created'] and record['bash_observed']):record['status']='failed'
