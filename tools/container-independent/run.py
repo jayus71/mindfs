@@ -104,7 +104,7 @@ try:
  # Real packaged Codex: empty ephemeral HOME, no network, handshake only.
  handshake_name=name+'-codex-handshake'
  stderr=(evidence/'codex-offline-stderr.log').open('w')
- handshake=subprocess.Popen(['docker','run','--rm','-i','--name',handshake_name,'--network','none','--read-only','--tmpfs',f'/home/mindfs:rw,uid={os.getuid()},gid={os.getgid()},mode=0700','--tmpfs','/tmp:rw,mode=1777','--entrypoint','codex',image,'app-server'],env=env,text=True,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=stderr)
+ handshake=subprocess.Popen(['docker','run','--rm','-i','--name',handshake_name,'--network','none','--read-only','--tmpfs',f'/home/mindfs:rw,uid={os.getuid()},gid={os.getgid()},mode=0700','--tmpfs','/tmp:rw,mode=1777',image,'codex','app-server'],env=env,text=True,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=stderr)
  try:
   request={'id':1,'method':'initialize','params':{'clientInfo':{'name':'mindfs-independent','version':'1.0.0'},'capabilities':{'experimentalApi':True}}}
   handshake.stdin.write(json.dumps(request)+'\n');handshake.stdin.flush()
