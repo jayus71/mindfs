@@ -236,6 +236,8 @@ MindFS automatically detects the availability of installed agents. This usually 
 
 On a Linux work node, select the built-in `rcc` agent to connect to Claude Code on an RCC runtime host. Complete `rcc login` and project confirmation first. The official CLI and credentials stay on the runtime host; each RCC project allows one active session. The runtime host controls the default model. See [RCC setup and supported behavior](docs/RCC_AGENT.md).
 
+For a separate container instance with Codex CLI, one-time provider configuration import, and optional RCC client mounting, see [container deployment](docs/CONTAINER.md).
+
 ### Custom ACP Agents
 
 MindFS can load an extra `agents.json` for agent CLIs that speak the ACP protocol. This is useful when you are testing a new agent or want to keep project-specific agent definitions outside the bundled defaults.
