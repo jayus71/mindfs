@@ -1,0 +1,11 @@
+# Merge with the operator's private FRP authentication/TLS configuration.
+# No FRP process or network configuration is installed by this repository.
+serverAddr = "REPLACE_WITH_FRP_SERVER"
+serverPort = 7000
+
+[[proxies]]
+name = "mindfs-rcc-container"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 7332
+remotePort = 17332

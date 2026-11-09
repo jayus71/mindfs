@@ -1,0 +1,10 @@
+# Mount the complete private RCC release read-only; never bake it into the image.
+services:
+  mindfs:
+    volumes:
+      - type: bind
+        source: ${RCC_RELEASE_DIR:?set the complete RCC release directory containing bin/rcc and bin/reach-helper}
+        target: /opt/rcc
+        read_only: true
+        bind:
+          create_host_path: false

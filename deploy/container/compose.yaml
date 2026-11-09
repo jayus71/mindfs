@@ -1,0 +1,49 @@
+name: mindfs-rcc
+services:
+  mindfs:
+    image: ${MINDFS_CONTAINER_IMAGE:-mindfs-rcc:local}
+    build:
+      context: ../..
+      dockerfile: deploy/container/Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
+        GO_IMAGE: ${GO_IMAGE:-golang:1.25-bookworm}
+        RUNTIME_IMAGE: ${RUNTIME_IMAGE:-ubuntu:24.04}
+        GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
+        GOSUMDB: ${GOSUMDB:-sum.golang.org}
+        MINDFS_UID: ${MINDFS_UID:-1000}
+        MINDFS_GID: ${MINDFS_GID:-1000}
+        CODEX_VERSION: ${CODEX_VERSION:-0.162.1}
+        VERSION: ${MINDFS_VERSION:-container-dev}
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    working_dir: ${MINDFS_PROJECT_DIR}
+    environment:
+      MINDFS_CONTAINER_PROJECT_PATH: ${MINDFS_PROJECT_DIR}
+      RCC_NODE_ID: ${RCC_NODE_ID:-}
+    command: ["mindfs", "--foreground", "--addr", ":7331", "--no-relayer", "--web-push=false", "--title", "MindFS RCC Container", "${MINDFS_PROJECT_DIR}"]
+    ports:
+      - "127.0.0.1:${MINDFS_CONTAINER_PORT:-7332}:7331"
+    volumes:
+      - type: bind
+        source: ${MINDFS_CONTAINER_HOME:?set an absolute private container HOME path}
+        target: /home/mindfs
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MINDFS_PROJECT_DIR:?set a single project path}
+        target: ${MINDFS_PROJECT_DIR}
+        bind:
+          create_host_path: false
+      # Hide the host project's existing .mindfs without copying its contents.
+      - type: bind
+        source: ${MINDFS_CONTAINER_HOME}/.workspace-metadata
+        target: ${MINDFS_PROJECT_DIR}/.mindfs
+        bind:
+          create_host_path: false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

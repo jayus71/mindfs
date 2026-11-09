@@ -1,0 +1,27 @@
+# Allow only build inputs. Credentials, worktrees and runtime data never enter
+# the Docker build context, even if created beside the checkout by mistake.
+**
+!go.mod
+!go.sum
+!agents.json
+!task_template.json
+!LICENSE
+!cli/
+!cli/**
+!server/
+!server/**
+!web/
+!web/**
+web/node_modules
+web/dist
+web/.env*
+!deploy/
+!deploy/container/
+!deploy/container/entrypoint.sh
+**/.codex
+**/.claude
+**/.mindfs
+**/.config
+**/node_modules
+**/*.log
+**/.env*
