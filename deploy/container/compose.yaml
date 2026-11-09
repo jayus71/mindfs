@@ -22,6 +22,7 @@ services:
     environment:
       MINDFS_CONTAINER_PROJECT_PATH: ${MINDFS_PROJECT_DIR}
       RCC_NODE_ID: ${RCC_NODE_ID:-}
+      RCC_CONFIRM_PROJECT: ${RCC_CONFIRM_PROJECT:-false}
     command: ["mindfs", "--foreground", "--addr", ":7331", "--no-relayer", "--web-push=false", "--title", "MindFS RCC Container", "${MINDFS_PROJECT_DIR}"]
     ports:
       - "127.0.0.1:${MINDFS_CONTAINER_PORT:-7332}:7331"

@@ -72,6 +72,10 @@ bash deploy/container/compose.sh exec mindfs rcc --help
 
 设置 `RCC_NODE_ID` 后，入口脚本在私有 HOME 生成额外 agent 定义，以 `rcc --node <ID>` 连接已授权的外部节点。RCC 的 profile、登录状态及凭据同样保存在容器 HOME；操作者需在容器内配置服务 profile，再按已有设备授权流程使用 `rcc login --code`。不要把宿主 RCC 凭据目录作为持续挂载。
 
+该实例需要在支持的项目目录首次使用时自动登记 RCC 绑定，可在启动或重建容器前设置 `export RCC_CONFIRM_PROJECT=true`。Compose 默认值为 `false`；设为 `true` 后，入口脚本为生成的 RCC agent 追加 `--confirm-project`，位置在 SDK 的 `--` 与 Claude 参数之前。设置在每次容器启动时重新生成，持续启用即可覆盖该实例使用的各个首次项目绑定；改回 `false` 并重建容器后停止自动确认，已登记的项目绑定继续保留。需要先设置 `RCC_NODE_ID`，该开关本身不创建 agent。
+
+此开关只确认 RCC 项目目录登记。设备登录、节点认证、现有目录支持约束、Claude Code 项目信任与工具权限均沿用原行为；包含 RCC 内部状态的 HOME 根目录、父子目录重叠等限制继续由 RCC 检查。它不增加容器挂载范围，也不自动批准官方 CLI 的权限请求。可选值为 `true` 或 `false`，其他值会在入口阶段报错。
+
 当前轻量容器支持 RCC 二进制运行和外部节点参数接线。RCC 自动登记本机节点及本机工具执行依赖用户 systemd，当前容器没有这套运行环境，完整新节点流程尚未支持。部署不使用 privileged 模式或宿主 systemd/DBus 挂载。外部节点的项目路径、授权与实际会话仍需在对应环境中验证。
 
 更新时在新版本源码中重建镜像并重建容器；私有 HOME 和项目元数据保留。容器中的 `mindfs --update` 属于原安装器流程，镜像升级统一使用以下命令：

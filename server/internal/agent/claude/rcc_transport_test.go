@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,11 +20,16 @@ import (
 	"time"
 )
 
+var rccConfirmProjectFixture = flag.Bool("confirm-project", false, "fake RCC project registration flag")
+
 // This process speaks the real SDK wire protocol through actual OS pipes. It
 // acts as RCC's transparent stdio boundary, without network or credentials.
 func TestRCCProcessHelper(t *testing.T) {
 	if os.Getenv("MINDFS_RCC_HELPER") != "1" {
 		return
+	}
+	if os.Getenv("MINDFS_RCC_EXPECT_CONFIRM") == "1" && !*rccConfirmProjectFixture {
+		os.Exit(24)
 	}
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM)
@@ -113,6 +119,8 @@ func rccTestOptions(t *testing.T) OpenOptions {
 
 func TestRCCSDKProcessRoundtripAndResume(t *testing.T) {
 	opts := rccTestOptions(t)
+	opts.Args = append(opts.Args, "--confirm-project")
+	opts.Env["MINDFS_RCC_EXPECT_CONFIRM"] = "1"
 	opts.ResumeSessionID = "remote-history-id"
 	opts.Model = "sonnet"
 	opts.Effort = "high"
@@ -153,7 +161,7 @@ func TestRCCSDKProcessRoundtripAndResume(t *testing.T) {
 	if err := json.Unmarshal(raw, &capture); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(capture.Args[:3], []string{"-test.run=^TestRCCProcessHelper$", "--", "-p"}) {
+	if len(capture.Args) < 4 || !reflect.DeepEqual(capture.Args[:4], []string{"-test.run=^TestRCCProcessHelper$", "--confirm-project", "--", "-p"}) {
 		t.Fatalf("argv = %#v", capture.Args)
 	}
 	for _, pair := range [][2]string{{"--input-format", "stream-json"}, {"--output-format", "stream-json"}, {"--resume", "remote-history-id"}, {"--model", "sonnet"}, {"--effort", "high"}, {"--append-system-prompt", opts.DeveloperInstructions}} {

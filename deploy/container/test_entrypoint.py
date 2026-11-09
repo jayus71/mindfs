@@ -85,6 +85,34 @@ class EntrypointEnvironmentTests(unittest.TestCase):
         self.assertEqual(self.start(), ['--version'])
         self.assertFalse(self.generated.exists())
 
+    def test_project_confirmation_is_opt_in_and_rebuilt_on_restart(self):
+        self.env['RCC_NODE_ID'] = 'fixture-node'
+        for enabled, expected in [(None, False), ('false', False), ('true', True), ('true', True), ('false', False)]:
+            with self.subTest(value=enabled, expected=expected):
+                if enabled is None:
+                    self.env.pop('RCC_CONFIRM_PROJECT', None)
+                else:
+                    self.env['RCC_CONFIRM_PROJECT'] = enabled
+                self.start()
+                agent = json.loads(self.generated.read_text())['agents'][0]
+                expected_args = ['--node', 'fixture-node'] + (['--confirm-project'] if expected else [])
+                self.assertEqual(agent['args'], expected_args)
+                self.assertNotIn('--', agent['args'], 'SDK must add the Claude argument separator')
+                self.assertEqual(agent['protocol'], 'rcc')
+                self.assertEqual(agent['command'], 'rcc')
+                self.assertNotIn('env', agent)
+
+    def test_project_confirmation_without_node_does_not_create_rcc_agent(self):
+        self.env['RCC_CONFIRM_PROJECT'] = 'true'
+        self.assertEqual(self.start(), ['--version'])
+        self.assertFalse(self.generated.exists())
+
+    def test_invalid_project_confirmation_fails_clearly(self):
+        self.env['RCC_CONFIRM_PROJECT'] = 'yes'
+        result = subprocess.run(['/bin/sh', str(ENTRYPOINT), 'mindfs'], env=self.env, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('RCC_CONFIRM_PROJECT must be true or false', result.stderr)
+
     def test_invalid_env_fails_without_echoing_values(self):
         secret = 'FAKE-INVALID-SECRET'
         self.source.write_text(json.dumps({'agents': [{'name': 'codex', 'env': {secret: ['invalid']}}]}))

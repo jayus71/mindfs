@@ -20,9 +20,15 @@ path = config / 'container-rcc.json'
 stage = None
 try:
     agents = []
+    confirm_project = os.environ.get('RCC_CONFIRM_PROJECT', 'false').strip().lower()
+    if confirm_project not in ('true', 'false'):
+        sys.exit('RCC_CONFIRM_PROJECT must be true or false.')
     if os.environ.get('RCC_NODE_ID'):
+        rcc_args = ['--node', os.environ['RCC_NODE_ID']]
+        if confirm_project == 'true':
+            rcc_args.append('--confirm-project')
         agents.append({'name': 'rcc', 'command': 'rcc', 'protocol': 'rcc',
-                       'args': ['--node', os.environ['RCC_NODE_ID']]})
+                       'args': rcc_args})
     source = config / 'agents.json'
     if source.exists():
         for agent in json.loads(source.read_text()).get('agents', []):

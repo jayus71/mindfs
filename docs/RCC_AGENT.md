@@ -39,6 +39,8 @@ go build -o mindfs ./cli/cmd
 
 需要由首次非交互调用确认项目时，可明确把 `--confirm-project` 加入该 agent 的 `args`。这会对使用该配置的每个首次项目绑定生效，应由使用者决定授权范围。它只确认 RCC 项目绑定，Claude Code 的项目信任和工具权限仍由运行端处理。
 
+容器部署可在已设置 `RCC_NODE_ID` 的基础上显式启用 `RCC_CONFIRM_PROJECT=true`，由入口脚本生成上述参数。此开关默认关闭，适用于该容器实例已授权自动登记的各个受支持项目目录；设备和节点认证、官方 CLI 权限以及 RCC 目录支持约束继续生效。启用、关闭和重建步骤见[容器部署说明](CONTAINER.md)。
+
 ## 会话行为与范围
 
 - 支持同一进程内多轮输入、流式回复、工具控制消息、AskUserQuestion、计划模式和 MindFS 开发者指令。
