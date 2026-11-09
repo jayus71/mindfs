@@ -15,7 +15,7 @@ if not source.exists():
  (source/'.codex/sessions/history-do-not-copy.txt').write_text('unrelated fake history\n')
  for filename in ['local-cli-tokens.json','registry.json','credentials.json']:(source/'.config/mindfs'/filename).write_text('{"fixture":"must-not-be-copied"}\n')
 if a.with_agent_env:
- (source/'.config/mindfs/agents.json').write_text(json.dumps({'agents':[{'name':'codex','command':'/host/not-a-container-command','env':{'INDEPENDENT_FIXTURE_ENV':'present'}}]})+'\n')
+ (source/'.config/mindfs/agents.json').write_text(json.dumps({'agents':[{'name':'codex','command':'/host/not-a-container-command','env':{'INDEPENDENT_FIXTURE_ENV':'present','HOME':'/host/invalid-home','CODEX_HOME':'/host/invalid-codex','PATH':'/host/invalid-bin','XDG_CONFIG_HOME':'/host/invalid-config','XDG_STATE_HOME':'/host/invalid-state'}}]})+'\n')
 project=base/'project';project.mkdir(exist_ok=True);(project/'.mindfs').mkdir(exist_ok=True);(project/'.mindfs/public-sentinel').write_text('public-metadata-must-stay\n')
 source_sha=subprocess.run(['git','-C',str(repo),'rev-parse','HEAD'],capture_output=True,text=True,check=True).stdout.strip()
 name='mindfs-independent-'+base.name.rsplit('-',1)[-1].lower();image=name+':test';evidence=base/'evidence';evidence.mkdir(exist_ok=True)
@@ -23,7 +23,7 @@ with socket.socket() as s:s.bind(('127.0.0.1',0));port=s.getsockname()[1]
 env={k:v for k,v in os.environ.items() if not k.startswith(('MINDFS_','MINDFS_RCC_','COMPOSE_','RCC_'))}
 env.update(MINDFS_VERSION='independent-'+source_sha[:12],MINDFS_CONTAINER_HOME=str(private),MINDFS_PROJECT_DIR=str(project),MINDFS_CONTAINER_PORT=str(port),MINDFS_UID=str(os.getuid()),MINDFS_GID=str(os.getgid()),RCC_RELEASE_DIR=str(pathlib.Path(a.rcc_release).resolve()),RCC_NODE_ID='external-fixture-node',DOCKER_CONFIG=str(base/'docker-config'))
 (base/'docker-config').mkdir(exist_ok=True);(base/'empty.env').touch()
-override=base/'compose.independent.yaml';override.write_text('services:\n  mindfs:\n    image: '+image+'\n    environment:\n      INDEPENDENT_CODEX_LOG: /home/mindfs/.local/state/independent-codex.jsonl\n      RCC_NODE_ID: external-fixture-node\n      HTTP_PROXY: http://127.0.0.1:9\n      HTTPS_PROXY: http://127.0.0.1:9\n      NO_PROXY: 127.0.0.1,localhost\n    volumes:\n      - type: bind\n        source: '+str(base/'fixtures')+'\n        target: /fixtures\n        read_only: true\n        bind:\n          create_host_path: false\n')
+override=base/'compose.independent.yaml';override.write_text('services:\n  mindfs:\n    image: '+image+'\n    environment:\n      INDEPENDENT_CODEX_LOG: /home/mindfs/.local/state/independent-codex.jsonl\n      INDEPENDENT_RUNTIME_ENV: runtime-v1\n      INDEPENDENT_TRANSIENT_ENV: old\n      RCC_NODE_ID: external-fixture-node\n      HTTP_PROXY: http://127.0.0.1:9\n      HTTPS_PROXY: http://127.0.0.1:9\n      NO_PROXY: 127.0.0.1,localhost\n    volumes:\n      - type: bind\n        source: '+str(base/'fixtures')+'\n        target: /fixtures\n        read_only: true\n        bind:\n          create_host_path: false\n')
 compose=['bash',str(repo/'deploy/container/compose.sh'),'-f',str(override),'-p',name,'--env-file',str(base/'empty.env')]
 checks=[];result={'name':name,'port':port,'image':image,'state':str(base),'source_sha':source_sha,'with_agent_env':a.with_agent_env,'checks':checks};cid=None
 
@@ -96,7 +96,7 @@ try:
  agents={'agents':[{'name':'codex','command':'/fixtures/fake-codex','protocol':'codex-sdk'},{'name':'rcc-invalid','command':'/opt/rcc/bin/rcc','protocol':'rcc','args':['--node','external-fixture-node','--independent-invalid-rcc-option']}]}
  if a.with_agent_env:
   imported=json.loads((private/'.config/mindfs/agents.json').read_text());assert imported['agents'][0]['command']=='codex';agents['agents'][0]['env']=imported['agents'][0]['env']
- (private/'.config/mindfs/agents.json').write_text(json.dumps(agents));(private/'.config/mindfs/agents.json').chmod(0o600)
+ (private/'.config/mindfs/agents.json').write_text(json.dumps(agents));(private/'.config/mindfs/agents.json').chmod(0o600);private_agents_before=(private/'.config/mindfs/agents.json').read_bytes()
  config=json.loads(comp('config','--format','json').stdout);service=config['services']['mindfs']
  assert not service.get('privileged') and service.get('network_mode')!='host'
  assert all(m.get('source') not in ('/var/run/docker.sock',str(pathlib.Path.home()),'/') for m in service['volumes'])
@@ -146,7 +146,8 @@ try:
  key2,text2=chat('independent container second Codex turn',key);assert key2==key and text2.endswith('2'),text2
  log=[json.loads(x) for x in (private/'.local/state/independent-codex.jsonl').read_text().splitlines()]
  starts=[x for x in log if x['kind']=='start'];assert starts and all(x['home']=='/home/mindfs' and x['codex_home']=='/home/mindfs/.codex' and x['argv'][1]=='app-server' for x in starts),starts
- if a.with_agent_env:assert all(x.get('fixture_env')=='present' for x in starts),starts
+ if a.with_agent_env:
+  assert all(x.get('fixture_env')=='present' and x.get('runtime_env')=='runtime-v1' and x.get('xdg_config_home')=='/home/mindfs/.config' and x.get('xdg_state_home')=='/home/mindfs/.local/state' and '/opt/rcc/bin' in x.get('path','') for x in starts),starts
  assert any(x.get('method')=='thread/start' and x['params'].get('cwd')==str(project) for x in log)
  cli=dex('mindfs','--agents').stdout;assert 'codex' in cli and 'codex-sdk' in cli,cli
  record('actual MindFS Codex SDK starts fake app-server and completes two turns',session=key,app_server_starts=len(starts))
@@ -172,10 +173,19 @@ try:
  _,resumed=chat('same persisted conversation after container restart',key);assert 'provider-v2' in resumed,resumed
  assert source_snapshot()==before and digest(project/'.mindfs/public-sentinel')==original_project
  record('provider changes, copied config and session DB persist across restart; source and host metadata unchanged',source_unchanged=True,public_metadata_sha256=original_project)
+ assert (private/'.config/mindfs/agents.json').read_bytes()==private_agents_before
+ if a.with_agent_env:
+  override.write_text(override.read_text().replace('INDEPENDENT_RUNTIME_ENV: runtime-v1','INDEPENDENT_RUNTIME_ENV: runtime-v2').replace('      INDEPENDENT_TRANSIENT_ENV: old\n',''))
  old_cid=cid;comp('down','--remove-orphans',timeout=90);comp('up','-d','--no-build',timeout=120);cid=comp('ps','-q','mindfs').stdout.strip();assert cid!=old_cid;wait_ready()
  assert [x['id'] for x in api('/api/agent-api-providers')[2]]==['provider-v2']
  assert key in [x['key'] for x in api('/api/sessions?root='+project.name)[2]['items']]
  assert source_snapshot()==before and digest(project/'.mindfs/public-sentinel')==original_project
+ if a.with_agent_env:
+  chat('fresh runtime snapshot after container recreation',key)
+  refreshed=[json.loads(x) for x in (private/'.local/state/independent-codex.jsonl').read_text().splitlines() if json.loads(x)['kind']=='start'][-1]
+  assert refreshed.get('runtime_env')=='runtime-v2' and refreshed.get('transient_env')=='' and refreshed.get('fixture_env')=='present',refreshed
+  assert (private/'.config/mindfs/agents.json').read_bytes()==private_agents_before
+  record('imported agent env keeps private paths and refreshes runtime snapshot without rewriting source',observed_start=refreshed,private_agents_sha256=hashlib.sha256(private_agents_before).hexdigest())
  record('new container retains the private volume state',old_container=old_cid,new_container=cid)
 
  result['passed']=True

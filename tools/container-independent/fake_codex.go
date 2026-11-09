@@ -10,7 +10,7 @@ func main(){
  for _,arg:=range os.Args[1:]{if arg=="--version"{fmt.Println("codex-cli 0.0.0-container-independent-fixture");return}}
  home:=os.Getenv("HOME");if _,e:=os.Stat(filepath.Join(home,".independent-fixture-owned"));e!=nil{panic("fixture marker missing; refusing to read HOME")}
  logPath=os.Getenv("INDEPENDENT_CODEX_LOG");if logPath==""{panic("fixture log path missing")};ch:=os.Getenv("CODEX_HOME");if ch==""{ch=filepath.Join(home,".codex")};b,_:=os.ReadFile(filepath.Join(ch,"config.toml"));config:=string(b);digest:=sha256.Sum256(b);cwd,_:=os.Getwd()
- logEntry("start",map[string]any{"argv":os.Args,"home":home,"codex_home":os.Getenv("CODEX_HOME"),"cwd":cwd,"config":config,"config_sha256":hex.EncodeToString(digest[:]),"fixture_env":os.Getenv("INDEPENDENT_FIXTURE_ENV")})
+ logEntry("start",map[string]any{"argv":os.Args,"home":home,"codex_home":os.Getenv("CODEX_HOME"),"cwd":cwd,"config":config,"config_sha256":hex.EncodeToString(digest[:]),"fixture_env":os.Getenv("INDEPENDENT_FIXTURE_ENV"),"runtime_env":os.Getenv("INDEPENDENT_RUNTIME_ENV"),"transient_env":os.Getenv("INDEPENDENT_TRANSIENT_ENV"),"path":os.Getenv("PATH"),"xdg_config_home":os.Getenv("XDG_CONFIG_HOME"),"xdg_state_home":os.Getenv("XDG_STATE_HOME")})
  scanner:=bufio.NewScanner(os.Stdin);scanner.Buffer(make([]byte,4096),4*1024*1024);turn:=0
  for scanner.Scan(){var req struct{ID *json.RawMessage `json:"id"`;Method string `json:"method"`;Params map[string]any `json:"params"`};if json.Unmarshal(scanner.Bytes(),&req)!=nil{continue};logEntry("rpc",map[string]any{"method":req.Method,"params":req.Params});if req.ID==nil{continue};var result any=map[string]any{}
  switch req.Method{
