@@ -4,6 +4,18 @@ Linux 工作节点上的 MindFS 现在可以通过内置 `rcc` agent 使用运�
 
 ## 使用
 
+该功能位于本 fork 的源码中。构建需要 Go 1.25 或更新版本、Node.js 和 npm；在仓库根目录执行：
+
+```bash
+cd web
+npm ci
+npm run build
+cd ..
+go build -o mindfs ./cli/cmd
+```
+
+生成的 `mindfs` 使用同目录下的 `web/dist`。构建不会安装、重启或替换已有服务；实际切换版本时同时使用这两项产物。
+
 先按 RCC 的发行方式安装客户端，并以运行 MindFS 的同一操作系统用户执行 `rcc login`，完成设备与工作节点授权。在准备使用的项目目录完成 RCC 项目绑定；默认 agent 配置不会自动确认项目。
 
 启动 MindFS 后选择 `rcc`。安装检测只检查本地可执行文件；首次实际会话会检查登录、项目绑定和运行端连接状态。失败时会显示 RCC 退出码与最后 4 KiB stderr，例如需要运行 `rcc login`、首次项目需要 `--confirm-project` 或该项目已有活动会话。
@@ -17,7 +29,7 @@ Linux 工作节点上的 MindFS 现在可以通过内置 `rcc` agent 使用运�
       "name": "rcc",
       "protocol": "rcc",
       "command": "/path/to/rcc",
-      "args": ["--profile", "work"]
+      "args": ["--profile", "/path/to/rcc-profile.json"]
     }
   ]
 }
@@ -60,3 +72,5 @@ MindFS 的 AGPL-3.0 许可与版权保留。本适配仅实现公开命令与协
 - `npm ci --ignore-scripts --no-audit --no-fund`、`npm run typecheck`、`npm run build`、`node tests/agent-lifecycle-restart.test.mjs`（`web` 目录）：通过；构建仍有上游的大 chunk 与 Lexical 注释提示。
 
 RCC 进程测试覆盖实际 SDK 的 argv 分隔、cwd、环境变量、initialize、双向工具控制、多轮输入、远端 ID 恢复、调用取消/超时后重开、非零退出与 stderr 诊断、禁用临时探测/本地历史、以及超过五秒的远端清理。假 RCC 进程通过真实 stdin/stdout 管道与 SDK 交互；实际 RCC 隔离链路由独立测试角色另行记录。
+
+实际 RCC、官方 CLI 与模型夹具的独测条件和结果见[独立测试报告](testing/rcc-independent-20261109.md)。维护者另执行了 `go vet ./server/internal/agent/... ./server/internal/api/usecase/...`、CLI 构建和构建产物的 `--version` 检查，均通过。
