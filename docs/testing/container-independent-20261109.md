@@ -1,6 +1,6 @@
 # MindFS 容器独立测试（2026-11-09）
 
-容器候选通过本轮独测。原命令 `mindfs`、网页、Codex 离线握手及真实 MindFS SDK→假 app-server 双轮对话均成功；一次性复制后的 provider 可独立切换、删除，并随会话数据库跨重启和容器重建保留。假源配置的内容与权限、宿主项目原 `.mindfs` sentinel 均保持不变。本轮未发现需要开发返修的问题。
+容器候选的基础路径通过独测；追加的 `--include-agent-env` 实际 SDK 验证发现 F01，当前等待开发返修。原命令 `mindfs`、网页、Codex 离线握手及真实 MindFS SDK→假 app-server 双轮对话均成功；一次性复制后的 provider 可独立切换、删除，并随会话数据库跨重启和容器重建保留。假源配置的内容与权限、宿主项目原 `.mindfs` sentinel 均保持不变。基础通过结果对应未导入 agent env 的设置。
 
 ## 固定来源与执行范围
 
@@ -27,6 +27,12 @@
 真实 Codex 的离线 stderr 提示 PATH 未安装系统 bubblewrap，将使用内置版本；握手与退出均成功。本轮未执行真实模型 turn 或沙箱工具行为。
 
 RCC 本轮验证覆盖二进制、显式外部节点参数和 SDK 诊断，未登录或建立新的外部节点成功会话。此前真实 RCC、官方 Claude、双 VM 与 mock 的六项链路结果见 [既有独测报告](rcc-independent-20261109.md)。轻量容器没有用户 systemd，容器新节点自动登记及本机工具执行仍不属于已验证能力。当前 Compose 的元数据覆盖范围为所选项目根目录；新增或嵌套项目须另配覆盖挂载。
+
+## F01：导入 agent env 后 SDK 环境丢失
+
+定向复现使用同一固定镜像与源码，通过交付脚本 `--include-agent-env` 导入只含 `INDEPENDENT_FIXTURE_ENV=present` 的假 Codex 环境。真实 MindFS→Codex SDK 启动时，独立包装器记录 `HOME_set= CODEX_HOME_set= imported_marker=present argv=app-server -c thread_unload_delay_secs=0`；假 app-server 因缺少私有 HOME 拒绝继续。
+
+既有 Go SDK 将非空 `Env` 作为完整子进程环境，新导入定义只包含源配置中的附加键。部署接线需在保留所导入必要键时，继承容器运行环境及私有 HOME/CODEX_HOME/PATH。本项已交开发；现场位于 `/tmp/mindfs-container-independent-env-hz1ex4u8`，复现脚本为 `/tmp/mindfs-container-independent-ZACFJ2/env_probe.py`。自有容器与网络已清理，未发送模型 turn。
 
 ## 复现与现场
 

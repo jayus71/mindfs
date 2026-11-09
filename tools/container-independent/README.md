@@ -15,4 +15,4 @@ PYTHONDONTWRITEBYTECODE=1 python3 tools/container-independent/run.py \
   --playwright-module /absolute/path/to/node_modules/playwright-core
 ```
 
-默认从当前源码构建独立镜像。已有构建可追加 `--reuse-image sha256:<完整镜像ID>`；该模式固定并复用所指定产物，不声称独立重建。测试结果与过程日志位于 `$state/result.json` 和 `$state/evidence/`。测试镜像名由临时目录后缀生成，避免覆盖开发或安装版镜像。
+追加 `--with-agent-env` 会通过交付导入脚本复制假 Codex 附加环境，并验证实际 SDK 同时继承容器 HOME/CODEX_HOME 与该假键。默认从当前源码构建独立镜像。已有构建可追加 `--reuse-image sha256:<完整镜像ID>`；该模式固定并复用所指定产物，不声称独立重建。测试结果与过程日志位于 `$state/result.json` 和 `$state/evidence/`。测试镜像名由临时目录后缀生成，避免覆盖开发或安装版镜像。

@@ -2,7 +2,7 @@
 """Independent container smoke probe; all host paths and Docker objects are owned by this run."""
 import argparse,hashlib,json,os,pathlib,re,selectors,shutil,socket,subprocess,tempfile,time,urllib.error,urllib.request
 from ws_fixture import WebSocket
-argp=argparse.ArgumentParser();argp.add_argument('--repo',required=True);argp.add_argument('--state',required=True);argp.add_argument('--rcc-release',required=True);argp.add_argument('--reuse-image',help='immutable sha256 image ID to reuse instead of rebuilding');argp.add_argument('--playwright-module');argp.add_argument('--go',default='go');argp.add_argument('--chromium-executable');a=argp.parse_args()
+argp=argparse.ArgumentParser();argp.add_argument('--repo',required=True);argp.add_argument('--state',required=True);argp.add_argument('--rcc-release',required=True);argp.add_argument('--reuse-image',help='immutable sha256 image ID to reuse instead of rebuilding');argp.add_argument('--playwright-module');argp.add_argument('--go',default='go');argp.add_argument('--chromium-executable');argp.add_argument('--with-agent-env',action='store_true');a=argp.parse_args()
 repo=pathlib.Path(a.repo).resolve();base=pathlib.Path(a.state).resolve();assert str(base).startswith('/tmp/mindfs-container-independent-')
 source=base/'source-home';private=base/'private-home'
 if not source.exists():
@@ -14,6 +14,8 @@ if not source.exists():
  (source/'.codex/auth.json').write_text('{"OPENAI_API_KEY":"not-a-real-key"}\n')
  (source/'.codex/sessions/history-do-not-copy.txt').write_text('unrelated fake history\n')
  for filename in ['local-cli-tokens.json','registry.json','credentials.json']:(source/'.config/mindfs'/filename).write_text('{"fixture":"must-not-be-copied"}\n')
+if a.with_agent_env:
+ (source/'.config/mindfs/agents.json').write_text(json.dumps({'agents':[{'name':'codex','command':'/host/not-a-container-command','env':{'INDEPENDENT_FIXTURE_ENV':'present'}}]})+'\n')
 project=base/'project';project.mkdir(exist_ok=True);(project/'.mindfs').mkdir(exist_ok=True);(project/'.mindfs/public-sentinel').write_text('public-metadata-must-stay\n')
 source_sha=subprocess.run(['git','-C',str(repo),'rev-parse','HEAD'],capture_output=True,text=True,check=True).stdout.strip()
 name='mindfs-independent-'+base.name.rsplit('-',1)[-1].lower();image=name+':test';evidence=base/'evidence';evidence.mkdir(exist_ok=True)
@@ -23,7 +25,7 @@ env.update(MINDFS_VERSION='independent-'+source_sha[:12],MINDFS_CONTAINER_HOME=s
 (base/'docker-config').mkdir(exist_ok=True);(base/'empty.env').touch()
 override=base/'compose.independent.yaml';override.write_text('services:\n  mindfs:\n    image: '+image+'\n    environment:\n      INDEPENDENT_CODEX_LOG: /home/mindfs/.local/state/independent-codex.jsonl\n      RCC_NODE_ID: external-fixture-node\n      HTTP_PROXY: http://127.0.0.1:9\n      HTTPS_PROXY: http://127.0.0.1:9\n      NO_PROXY: 127.0.0.1,localhost\n    volumes:\n      - type: bind\n        source: '+str(base/'fixtures')+'\n        target: /fixtures\n        read_only: true\n        bind:\n          create_host_path: false\n')
 compose=['bash',str(repo/'deploy/container/compose.sh'),'-f',str(override),'-p',name,'--env-file',str(base/'empty.env')]
-checks=[];result={'name':name,'port':port,'image':image,'state':str(base),'source_sha':source_sha,'checks':checks};cid=None
+checks=[];result={'name':name,'port':port,'image':image,'state':str(base),'source_sha':source_sha,'with_agent_env':a.with_agent_env,'checks':checks};cid=None
 
 def run(args,ok=True,timeout=120,**kwargs):
  r=subprocess.run(args,env=env,text=True,capture_output=True,timeout=timeout,**kwargs)
@@ -78,8 +80,11 @@ before=source_snapshot();original_project=digest(project/'.mindfs/public-sentine
 try:
  # Exercise the delivered importer on fake source files, including explicit credential opt-ins.
  importer=[os.sys.executable,str(repo/'deploy/container/import-settings.py'),'--mindfs-config-dir',str(source/'.config/mindfs'),'--codex-home',str(source/'.codex'),'--destination',str(private),'--include-mindfs-providers','--include-codex-auth']
+ if a.with_agent_env:importer.append('--include-agent-env')
  r=run(importer);copied={str(p.relative_to(private)) for p in private.rglob('*') if p.is_file()}
- assert copied=={'.config/mindfs/api-providers.json','.config/mindfs/preferences.json','.codex/config.toml','.codex/auth.json'},copied
+ expected_files={'.config/mindfs/api-providers.json','.config/mindfs/preferences.json','.codex/config.toml','.codex/auth.json'}
+ if a.with_agent_env:expected_files.add('.config/mindfs/agents.json')
+ assert copied==expected_files,copied
  assert source_snapshot()==before
  assert (private/'.codex/config.toml').read_bytes()==(source/'.codex/config.toml').read_bytes()
  assert all(p.stat().st_mode&0o777==(0o700 if p.is_dir() else 0o600) for p in [private,*private.rglob('*')])
@@ -89,6 +94,8 @@ try:
  (private/'.independent-fixture-owned').touch();(private/'.local/state').mkdir(parents=True,exist_ok=True)
  fixtures=base/'fixtures';fixtures.mkdir(exist_ok=True);shutil.copy2(base/'fake-codex',fixtures/'fake-codex')
  agents={'agents':[{'name':'codex','command':'/fixtures/fake-codex','protocol':'codex-sdk'},{'name':'rcc-invalid','command':'/opt/rcc/bin/rcc','protocol':'rcc','args':['--node','external-fixture-node','--independent-invalid-rcc-option']}]}
+ if a.with_agent_env:
+  imported=json.loads((private/'.config/mindfs/agents.json').read_text());assert imported['agents'][0]['command']=='codex';agents['agents'][0]['env']=imported['agents'][0]['env']
  (private/'.config/mindfs/agents.json').write_text(json.dumps(agents));(private/'.config/mindfs/agents.json').chmod(0o600)
  config=json.loads(comp('config','--format','json').stdout);service=config['services']['mindfs']
  assert not service.get('privileged') and service.get('network_mode')!='host'
@@ -139,6 +146,7 @@ try:
  key2,text2=chat('independent container second Codex turn',key);assert key2==key and text2.endswith('2'),text2
  log=[json.loads(x) for x in (private/'.local/state/independent-codex.jsonl').read_text().splitlines()]
  starts=[x for x in log if x['kind']=='start'];assert starts and all(x['home']=='/home/mindfs' and x['codex_home']=='/home/mindfs/.codex' and x['argv'][1]=='app-server' for x in starts),starts
+ if a.with_agent_env:assert all(x.get('fixture_env')=='present' for x in starts),starts
  assert any(x.get('method')=='thread/start' and x['params'].get('cwd')==str(project) for x in log)
  cli=dex('mindfs','--agents').stdout;assert 'codex' in cli and 'codex-sdk' in cli,cli
  record('actual MindFS Codex SDK starts fake app-server and completes two turns',session=key,app_server_starts=len(starts))
