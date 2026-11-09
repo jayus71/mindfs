@@ -35,6 +35,21 @@ func TestRCCIndependentActualIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	in := agenttypes.OpenSessionInput{AgentName: def.Name, SessionKey: "independent-" + scenario, RootPath: project, Model: "claude-sonnet-4-6"}
+	if scenario == "invalid" {
+		def.Args = append(def.Args, "--independent-invalid-rcc-option")
+		badPool := NewPool(Config{Agents: []Definition{def}})
+		defer badPool.CloseAll()
+		_, openErr := badPool.GetOrCreate(ctx, in)
+		var exited *exec.ExitError
+		if !errors.As(openErr, &exited) || exited.ExitCode() == 0 {
+			t.Fatalf("actual RCC invalid flag lost exit status: %v", openErr)
+		}
+		if !strings.Contains(openErr.Error(), "independent-invalid-rcc-option") {
+			t.Fatalf("actual RCC stderr diagnostic missing: %v", openErr)
+		}
+		t.Logf("actual RCC invalid-option exit preserved: %d", exited.ExitCode())
+		return
+	}
 	idFile := filepath.Join(root, "independent-official-session")
 	if scenario == "resume" {
 		b, e := os.ReadFile(idFile)
