@@ -46,12 +46,13 @@ record={'scenario':a.action,'exit':result.returncode,'elapsed':round(time.monoto
 rows=json.loads(f.remote('runtime',['python3','-c','import json,pathlib;p=pathlib.Path("/srv/rcc87s3/home/alice/mock-requests.jsonl");print(json.dumps([json.loads(l) for l in p.read_text().splitlines()] if p.exists() else []))']).stdout)
 record['mock_requests']=len(rows)
 text=json.dumps(rows)
+results=[part for row in rows for message in row.get('messages',[]) if isinstance(message.get('content'),list) for part in message['content'] if part.get('type')=='tool_result']
 record['prompt_observed']='MINDFS_RCC_'+a.action+'_FIRST' in text
 if a.action=='basic':record['second_prompt_observed']='MINDFS_RCC_BASIC_SECOND' in text
 if a.action=='resume':record['previous_remote_history_observed']='MINDFS_RCC_basic_FIRST' in text and 'MINDFS_RCC_BASIC_SECOND' in text
 if a.action=='question':
-    record['answer_observed']='Blue' in text
-    record['bash_observed']='MINDFS_RCC_NODE_BASH' in text
+    record['answer_observed']=any(part.get('tool_use_id')=='toolu_independent_3' and not part.get('is_error') and 'Blue' in json.dumps(part.get('content')) for part in results)
+    record['bash_observed']=any(part.get('tool_use_id')=='toolu_independent_2' and not part.get('is_error') and 'MINDFS_RCC_NODE_BASH' in json.dumps(part.get('content')) for part in results)
     record['node_created']=f.remote('node',['cat',str(f.project/'permission-created.txt')],check=False).stdout=='MINDFS_RCC_NODE_WRITE\n'
     record['host_created']=(f.project/'permission-created.txt').exists()
     assert not record['host_created']
