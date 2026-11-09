@@ -1,0 +1,124 @@
+{
+  "development_sha": "c0c78168577d1649b3d78143c9af4f096925f1b5",
+  "rcc_source_sha": "56de616a3db3b960e4b0f28d62919942ad1f5b26",
+  "scope": "actual MindFS Pool -> Claude SDK -> RCC HTTPS/WSS -> official Claude 2.1.317 + loopback mock + separate node VM",
+  "cases": [
+    {
+      "scenario": "basic",
+      "exit": 0,
+      "elapsed": 16.467,
+      "mock_requests": 3,
+      "prompt_observed": true,
+      "second_prompt_observed": true,
+      "status": "passed",
+      "test_sha": "81acced715c8637dc52e69409dc6b95fc2f0ba81",
+      "native_session_count": 1,
+      "confirmed_stopped": true,
+      "stop_confirmation_elapsed": [
+        "2.151084507s"
+      ]
+    },
+    {
+      "scenario": "resume",
+      "exit": 0,
+      "elapsed": 16.131,
+      "mock_requests": 2,
+      "prompt_observed": true,
+      "previous_remote_history_observed": true,
+      "status": "passed",
+      "test_sha": "81acced715c8637dc52e69409dc6b95fc2f0ba81",
+      "native_session_count": 1,
+      "confirmed_stopped": true,
+      "stop_confirmation_elapsed": [
+        "1.785757462s"
+      ]
+    },
+    {
+      "scenario": "question",
+      "exit": 0,
+      "elapsed": 36.973,
+      "mock_requests": 6,
+      "prompt_observed": true,
+      "answer_observed": true,
+      "bash_observed": true,
+      "node_created": true,
+      "host_created": false,
+      "status": "passed",
+      "test_sha": "81acced715c8637dc52e69409dc6b95fc2f0ba81",
+      "native_session_count": 1,
+      "confirmed_stopped": true,
+      "stop_confirmation_elapsed": [
+        "2.153920951s"
+      ]
+    },
+    {
+      "scenario": "cancel-resume",
+      "exit": 0,
+      "elapsed": 53.864,
+      "mock_requests": 8,
+      "status": "passed",
+      "resumed_prompt_observed": true,
+      "test_sha": "81acced715c8637dc52e69409dc6b95fc2f0ba81",
+      "native_session_count": 2,
+      "confirmed_stopped": true,
+      "stop_confirmation_elapsed": [
+        "5.303128882s",
+        "2.279680721s"
+      ]
+    },
+    {
+      "scenario": "cancel-api",
+      "exit": 0,
+      "elapsed": 50.839,
+      "mock_requests": 8,
+      "status": "passed",
+      "resumed_prompt_observed": true,
+      "test_sha": "004871d3ef6d06acec7368bce599e819ed84eac1",
+      "native_session_count": 2,
+      "confirmed_stopped": true,
+      "stop_confirmation_elapsed": [
+        "7.355176168s",
+        "1.836129289s"
+      ]
+    },
+    {
+      "scenario": "terminate",
+      "exit": 0,
+      "elapsed": 15.648,
+      "mock_requests": 1,
+      "status": "passed",
+      "test_sha": "004871d3ef6d06acec7368bce599e819ed84eac1",
+      "native_session_count": 1,
+      "confirmed_stopped": true,
+      "stop_confirmation_elapsed": [
+        "2.231108628s"
+      ],
+      "sigterm_local_exit_elapsed": "301.33788ms"
+    }
+  ],
+  "invalid_client_option": {
+    "exit_error_code": 1,
+    "stderr_diagnostic_preserved": true,
+    "test_sha": "004871d3ef6d06acec7368bce599e819ed84eac1"
+  },
+  "boundary_probe_and_local_importer": "passed",
+  "go_regression": {
+    "test_sha": "81acced715c8637dc52e69409dc6b95fc2f0ba81",
+    "packages": [
+      "./server/internal/agent",
+      "./server/internal/agent/claude",
+      "./server/internal/api/usecase"
+    ],
+    "exit": 0
+  },
+  "final_native_session_count": 9,
+  "final_native_all_stopped": true,
+  "production_access": false,
+  "real_model_requests": false,
+  "resources": {
+    "own_vms_stopped": true,
+    "own_loopback_listeners_closed": true,
+    "private_overlays_and_records_preserved": true,
+    "other_services_modified": false
+  }
+}
