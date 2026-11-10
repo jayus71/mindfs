@@ -1892,7 +1892,9 @@ export function ActionBar({
                       setAgent(nextAgent);
                       setModel(nextModel || defaults.model);
                       setAgentMode("");
-                      setEffort(defaults.effort);
+                      if (nextAgent !== agent || nextStatus?.protocol !== "rcc") {
+                        setEffort(defaults.effort);
+                      }
                       setFastService(defaults.fastService);
                     }}
                     onModeChange={(nextAgentMode) => setAgentMode(nextAgentMode || "")}

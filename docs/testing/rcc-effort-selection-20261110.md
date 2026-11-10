@@ -24,3 +24,9 @@ RCC 状态声明协议级 `efforts=[low,medium,high,xhigh,max]` 和 `default_eff
 - `git diff --check`，通过。
 
 本轮未验证账号在各模型上对每个 effort 的实际支持，未运行生产模型请求或完整生产 HTTPS/E2EE 调用。取消 stopping 问题不在本轮范围。维护者负责后续独立测试、主审和部署。
+
+## 独测返修：同一 RCC 切模型保留等级
+
+独立测试发现选 max 后从 opus 切 fable，ActionBar 的通用 `onAgentChange` 无条件应用默认，将 effort 重置为 high。开发回归在修复前稳定复现 `high != max`；现仅在同一 RCC agent 内保留当前 effort，跨 agent 与非 RCC 仍使用原默认行为，模型与账号兼容性继续交由官方 CLI 验证。
+
+新增浏览器检查覆盖新会话、已有空等级和已有 low 三种场景：选 max 并发送后切 fable，等待实际发送 callback 的 model 成为 fable，再断言 effort 为 max，避免把前一次 callback 当作通过。修复后该浏览器回归与 `npm run typecheck` 通过。本次没有改 Go；按受影响范围不重复 Go 回归或构建，不改独测文件和生产。
