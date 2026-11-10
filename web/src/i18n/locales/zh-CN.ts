@@ -698,6 +698,7 @@ export const zhCN = {
   "agent.model": "模型",
   "agent.mode": "模式",
   "agent.effort": "思考等级",
+  "agent.rccEffortDescription": "默认 high；选项来自运行端 CLI，当前模型与账号的兼容性由运行端验证。",
   "agent.fastMode": "Fast 模式",
   "agent.enabled": "开启",
   "agent.disabled": "关闭",

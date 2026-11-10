@@ -307,8 +307,8 @@ export function AgentSelector({
   }, [submenuAgentStatus, agent, mode]);
   const submenuIsCodex = submenuAgentStatus?.name === "codex";
   const submenuSupportsEffort = useMemo(
-    () => submenuEfforts.length > 0 && !!submenuSelectedModel?.supportEffort,
-    [submenuEfforts, submenuSelectedModel],
+    () => submenuEfforts.length > 0 && (submenuAgentStatus?.protocol === "rcc" || !!submenuSelectedModel?.supportEffort),
+    [submenuEfforts, submenuSelectedModel, submenuAgentStatus],
   );
   const submenuSupportsServiceTier =
     !!submenuAgentStatus?.supports_fast_service;
@@ -1144,6 +1144,7 @@ export function AgentSelector({
                     />
                     {effortSectionExpanded ? (
                       <>
+                        {submenuAgentStatus.protocol === "rcc" ? <div style={{ padding: "8px 12px", fontSize: "11px", color: "var(--text-secondary)" }}>{t("agent.rccEffortDescription")}</div> : null}
                         {submenuEfforts.map((item, index) => (
                           <button
                             key={item}

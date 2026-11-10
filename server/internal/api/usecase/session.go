@@ -1248,7 +1248,13 @@ func applyMessageRuntimeDefaultsFromStatus(
 	status agent.Status,
 	statusOK bool,
 ) {
-	if in == nil || strings.TrimSpace(in.Model) != "" {
+	if in == nil {
+		return
+	}
+	if statusOK && status.Protocol == agent.ProtocolRCC && strings.TrimSpace(in.Effort) == "" {
+		in.Effort = strings.TrimSpace(status.DefaultEffort)
+	}
+	if strings.TrimSpace(in.Model) != "" {
 		return
 	}
 	in.Model = ""
@@ -1269,8 +1275,8 @@ func applyMessageRuntimeDefaultsFromStatus(
 	}
 }
 
-func (s *Service) applyMessageRuntimeDefaults(in *SendMessageInput) {
-	if in == nil || strings.TrimSpace(in.Model) != "" {
+func (s *Service) applyMessageRuntimeDefaults(in *SendMessageInput, current *session.Session) {
+	if in == nil {
 		return
 	}
 	if s == nil || s.Registry == nil || s.Registry.GetProber() == nil {
@@ -1279,6 +1285,11 @@ func (s *Service) applyMessageRuntimeDefaults(in *SendMessageInput) {
 	}
 	status, ok := s.Registry.GetProber().GetStatus(strings.TrimSpace(in.Agent))
 	if ok {
+		if status.Protocol == agent.ProtocolRCC && strings.TrimSpace(in.Effort) == "" {
+			// A resumed session retains its explicit effort. Legacy empty-effort
+			// sessions adopt the RCC default on their next turn.
+			in.Effort = session.InferEffortFromSession(current)
+		}
 		if prefs := s.Registry.GetPreferences(); prefs != nil {
 			status = prefs.ApplyAgentDefaults([]agent.Status{status})[0]
 		}
@@ -2197,7 +2208,6 @@ func (s *Service) SendMessage(ctx context.Context, in SendMessageInput) error {
 	turnCtx, turnCancel := context.WithCancel(ctx)
 	registerActiveTurn(in.RootID, in.Key, turnCancel)
 	defer unregisterActiveTurn(in.RootID, in.Key)
-	s.applyMessageRuntimeDefaults(&in)
 	manager, err := s.Registry.GetSessionManager(in.RootID)
 	if err != nil {
 		return err
@@ -2206,6 +2216,7 @@ func (s *Service) SendMessage(ctx context.Context, in SendMessageInput) error {
 	if err != nil {
 		return err
 	}
+	s.applyMessageRuntimeDefaults(&in, current)
 	if in.PlanMode != nil && current.PlanMode != *in.PlanMode {
 		if err := manager.UpdatePlanMode(ctx, current, *in.PlanMode); err != nil {
 			return err

@@ -130,7 +130,7 @@ func TestRCCProbeOnlyChecksInstallationAndRejectsLocalHistory(t *testing.T) {
 			t.Fatalf("alias advertised unverified capabilities: %+v", model)
 		}
 	}
-	if st.DefaultModelID != "" || st.CurrentModelID != "" || len(st.Efforts) != 0 {
+	if st.DefaultModelID != "" || st.CurrentModelID != "" || st.DefaultEffort != "high" || strings.Join(st.Efforts, ",") != "low,medium,high,xhigh,max" {
 		t.Fatalf("probe inferred remote defaults: %+v", st)
 	}
 	if _, err := NewExternalSessionImporter(def); err == nil || !strings.Contains(err.Error(), "remote history") {

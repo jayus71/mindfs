@@ -321,3 +321,33 @@ func TestRCCRejectsLocalForkAndArgumentSeparator(t *testing.T) {
 		t.Fatal("accepted separator")
 	}
 }
+
+func TestRCCEffortOptionsReachCLI(t *testing.T) {
+	for _, effort := range []string{"low", "medium", "high", "xhigh", "max"} {
+		t.Run(effort, func(t *testing.T) {
+			opts := rccTestOptions(t)
+			opts.Model, opts.Effort, opts.ResumeSessionID = "opus", effort, "existing-remote-session"
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			sess, err := NewRuntime().OpenSession(ctx, opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer sess.Close()
+			raw, err := os.ReadFile(opts.Env["MINDFS_RCC_CAPTURE"])
+			if err != nil {
+				t.Fatal(err)
+			}
+			var capture struct{ Args []string }
+			if err := json.Unmarshal(raw, &capture); err != nil {
+				t.Fatal(err)
+			}
+			args := strings.Join(capture.Args, " ")
+			for _, want := range []string{"--effort " + effort, "--model opus", "--resume existing-remote-session"} {
+				if !strings.Contains(args, want) {
+					t.Fatalf("argv %q missing %q", args, want)
+				}
+			}
+		})
+	}
+}

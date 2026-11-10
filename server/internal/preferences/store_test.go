@@ -188,3 +188,21 @@ func TestNewProjectMetaLocationDefaultAndPersist(t *testing.T) {
 		t.Fatal("invalid location unexpectedly accepted")
 	}
 }
+
+func TestRCCDefaultEffortSurvivesEmptyPreferencesAndRestoresExplicitChoice(t *testing.T) {
+	store := &Store{path: filepath.Join(t.TempDir(), preferencesFileName)}
+	status := agent.Status{Name: "rcc", Protocol: agent.ProtocolRCC, DefaultEffort: "high"}
+	for _, effort := range []string{"", "low", "max"} {
+		if _, err := store.UpdateAgentDefaultsIfChanged("rcc", "opus", effort, ""); err != nil {
+			t.Fatal(err)
+		}
+		got := store.ApplyAgentDefaults([]agent.Status{status})[0]
+		want := effort
+		if want == "" {
+			want = "high"
+		}
+		if got.DefaultEffort != want {
+			t.Fatalf("prefs %q resolved %q, want %q", effort, got.DefaultEffort, want)
+		}
+	}
+}

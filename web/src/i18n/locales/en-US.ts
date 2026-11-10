@@ -700,6 +700,7 @@ export const enUS = {
   "agent.model": "Model",
   "agent.mode": "Mode",
   "agent.effort": "Reasoning effort",
+  "agent.rccEffortDescription": "Default: high. Options come from the runtime CLI; the runtime validates model and account compatibility.",
   "agent.fastMode": "Fast mode",
   "agent.enabled": "On",
   "agent.disabled": "Off",

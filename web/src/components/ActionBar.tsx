@@ -723,7 +723,7 @@ export function ActionBar({
   const availableEfforts = selectedModelInfo?.efforts ?? selectedAgent?.efforts ?? [];
   const isCodexEffortAgent = selectedAgent?.name === "codex";
   const supportsEffort =
-    availableEfforts.length > 0 && !!selectedModelInfo?.supportEffort;
+    availableEfforts.length > 0 && (selectedAgent?.protocol === "rcc" || !!selectedModelInfo?.supportEffort);
   const supportsServiceTier = !!selectedAgent?.supports_fast_service;
   const planModeActive = (!!currentSession?.plan_mode || pendingPlanMode) && mode !== "command";
   const planSessionKey = currentSession?.key || currentSession?.session_key || "";
@@ -731,6 +731,9 @@ export function ActionBar({
   const sessionHistoryKey = currentSession?.key || currentSession?.session_key || "";
 
   useEffect(() => {
+    // Session settings can arrive before the agent catalog. Preserve them
+    // until capabilities are available rather than clearing a saved choice.
+    if (!selectedAgent) return;
     if (!supportsEffort) {
       if (effort) {
         setEffort("");
@@ -1095,7 +1098,7 @@ export function ActionBar({
         mode === "command" ? "" : agent,
         model || undefined,
         agentMode || undefined,
-        supportsEffort ? effort || undefined : undefined,
+        supportsEffort ? effort || (selectedAgent?.protocol === "rcc" ? getAgentDefaults(selectedAgent).effort : "") || undefined : undefined,
         supportsServiceTier ? fastService : undefined,
         mode === "command" ? shell || undefined : undefined,
         !currentSession && mode !== "command" && currentRootIsGitRepo
@@ -1140,7 +1143,7 @@ export function ActionBar({
         requestAnimationFrame(() => editorRef.current?.focus());
       }
     }
-  }, [serializedInput, pendingAttachments, isConnected, sending, mode, agent, currentRootId, planSessionKey, planRootId, onSetPlanMode, isMobile, model, agentMode, onSendMessage, supportsEffort, effort, supportsServiceTier, fastService, shell, t, currentSession, currentRootIsGitRepo, createWorktree, worktreeBranchMode, worktreeBranch]);
+  }, [serializedInput, pendingAttachments, isConnected, sending, mode, agent, currentRootId, planSessionKey, planRootId, onSetPlanMode, isMobile, model, agentMode, onSendMessage, supportsEffort, effort, selectedAgent, supportsServiceTier, fastService, shell, t, currentSession, currentRootIsGitRepo, createWorktree, worktreeBranchMode, worktreeBranch]);
 
   const handleCancel = useCallback(async () => {
     const sessionKey = currentSession?.key;

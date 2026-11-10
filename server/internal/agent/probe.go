@@ -808,6 +808,8 @@ func probeInstallStatus(name string, def Definition, ts time.Time) Status {
 		// discovered catalog or a promise of account access. Never inspect the
 		// work node's Claude/provider configuration for an RCC agent.
 		status.Models = rccModelAliases()
+		status.Efforts = []string{"low", "medium", "high", "xhigh", "max"}
+		status.DefaultEffort = "high"
 		return status
 	}
 	status.ProbeError = "probe pending"
